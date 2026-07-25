@@ -100,6 +100,38 @@ svg{display:block;width:100%;height:auto}
 .rank .br{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
 .rank .br .up{color:var(--rise)} .rank .br .dn{color:var(--fall)}
 .dampnote{font-size:11px;color:var(--flag);margin-top:3px;line-height:1.5}
+/* bit のやさしい解説。数字の隣で読めないと、単位の意味は伝わらない。 */
+.eig .note p{margin:0 0 8px}
+.eig .note p:last-child{margin-bottom:0}
+.eigt{border-collapse:collapse;margin:8px 0;font-size:12px}
+.eigt th,.eigt td{border:1px solid var(--rule-2);padding:4px 11px;text-align:left}
+.eigt th{background:#F1F5F7;color:var(--ink);font-weight:700}
+.eigt td:last-child{font-family:var(--mono)}
+.eigcmp{background:#F7F9FA;border-left:3px solid var(--rule);padding:7px 11px;margin:8px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
+.eigwarn{color:var(--flag)}
+.eigh{font-size:12.5px;color:var(--ink);margin:14px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--rule-2);font-weight:700}
+.eigh:first-of-type{margin-top:10px}
+.eigsvg{width:100%;max-width:520px;height:auto;display:block;margin:8px 0 2px}
+.eigcap{font-size:11.5px;color:var(--ink-3);margin:0 0 8px}
+.eigt i,.eig i{font-style:italic}
+/* 機序ごとの読み方。「確率は動かないが確信は上がる」を、オッズとは別の軸として見せる。 */
+.mech{margin-top:10px;border:1px solid var(--rule);background:#FBFCFD}
+.mech .mh{padding:8px 12px;border-bottom:1px solid var(--rule-2);background:#F4F7F9;font-size:12.5px;color:var(--ink)}
+.mech .mh b{font-family:var(--mono)}
+.mech .md{color:var(--fall);font-family:var(--mono);margin-left:6px}
+.mech .mk{color:var(--ink-3);font-size:11.5px;margin-left:6px}
+.mech ul{list-style:none;margin:0;padding:0}
+.mech li{padding:8px 12px;border-bottom:1px dotted var(--rule-2);font-size:12.5px;line-height:1.7}
+.mech li:last-child{border-bottom:none}
+.mech .cl{font-weight:700;color:var(--ink)}
+.mech .fs{color:var(--ink-2)}
+.mech .ct{font-size:11.5px;margin-left:4px}
+.mech .agree{color:var(--fall)}
+.mech .alone{color:var(--ink-3)}
+.mech .clash{color:var(--rise);font-weight:700}
+.mech .contrib{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);float:right}
+.mech .mfoot{padding:8px 12px;background:#F4F7F9;border-top:1px solid var(--rule-2);font-size:11.5px;color:var(--ink-2);line-height:1.75}
+.mech .mfoot b{color:var(--ink)}
 /* 信頼区間まわり。値の確かさの差が一目で分かるようにする。 */
 .ci{font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-left:2px}
 .noci{color:var(--ink-3);font-style:normal}
@@ -177,7 +209,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.0.0</span>
+    <span class="ver" id="verLabel">v2.3.0</span>
   </div>
 </header>
 
@@ -239,7 +271,98 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 
   <section class="panel">
     <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
-    <div class="note" style="margin-bottom:8px">現在の確率で、<b>まだ取っていない所見</b>を期待情報利得（bit）の大きい順に並べたもの。「やる価値のある診察」を数量で示す。</div>
+    <div class="note" style="margin-bottom:8px"><b>次にどの診察をすれば、いちばん迷いが減るか</b>の順番です。<br>やる前は陽性か陰性か分かりません。そこで<b>陽性だった場合と陰性だった場合の両方を、それぞれの起こりやすさで重みづけして平均</b>し、確率がどれだけ動きそうかを1つの数にしています（単位 bit）。「期待」が付くのはこのためです。<br><b>1 bit ＝ 五分五分の迷いが、ひとつ完全に解ける</b>だけの情報量。0.1 bit を切ると、確率はほとんど動きません。<br>ただし<b>「確率が動かない」ことと「判断が変わらない」ことは別</b>です。閾値のすぐ近くにいれば、わずかな動きでも除外域・確定域に入ります。そのため各行には <b>「判断が変わる確率」</b> を併記しています ── <b>実務ではこちらが決め手になることが多い</b>ので、bit が小さくてもこの数字が大きい所見は見逃さないでください。</div>
+    <details class="eig">
+      <summary>bit とは何か ── LR とオッズは知っているが bit は初めて、という方へ</summary>
+      <div class="note" style="margin-top:8px">
+
+        <p><b>まず、すでにご存じのものから。</b>
+        尤度比（LR）は「その所見が<b>確率をどれだけ動かすか</b>」を表します。これは<b>所見の性質</b>で、患者によりません。<br>
+        bit はその次の話で、「その動きによって、<b>この患者についての迷いがどれだけ晴れたか</b>」を表します。
+        こちらは<b>患者によって変わります</b>。同じ所見でも、誰に使うかで価値が違うからです。</p>
+
+        <h4 class="eigh">1. 「迷いの大きさ」を数で表す</h4>
+        <p>確率が 50% のとき、あなたは最大限に迷っています。この五分五分の迷いを <b>1 bit</b> と決めます。
+        0% か 100% に振り切れていれば、迷いは <b>0 bit</b> ── もう迷っていません。</p>
+
+        <svg viewBox="0 0 520 150" class="eigsvg" role="img" aria-label="確率と迷いの大きさの関係">
+          <line x1="44" y1="124" x2="506" y2="124" stroke="#14232C" stroke-width="1.2"/>
+          <line x1="44" y1="12" x2="44" y2="124" stroke="#14232C" stroke-width="1.2"/>
+          <line x1="44" y1="68" x2="506" y2="68" stroke="#DDE4E8" stroke-dasharray="3 3"/>
+          <line x1="275" y1="12" x2="275" y2="124" stroke="#DDE4E8" stroke-dasharray="3 3"/>
+          <text x="38" y="127" font-size="9" fill="#61717A" text-anchor="end">0</text>
+          <text x="38" y="71" font-size="9" fill="#61717A" text-anchor="end">0.5</text>
+          <text x="38" y="16" font-size="9" fill="#61717A" text-anchor="end">1.0</text>
+          <text x="10" y="72" font-size="9" fill="#4A5C66" transform="rotate(-90 10 72)" text-anchor="middle">迷い（bit）</text>
+          <text x="44" y="137" font-size="9" fill="#61717A" text-anchor="middle">0%</text>
+          <text x="275" y="137" font-size="9" fill="#61717A" text-anchor="middle">50%</text>
+          <text x="506" y="137" font-size="9" fill="#61717A" text-anchor="middle">100%</text>
+          <text x="275" y="148" font-size="9" fill="#4A5C66" text-anchor="middle">いまの確率</text>
+          <polyline points="44.0,124.0 53.2,108.2 62.5,96.9 71.7,87.3 81.0,79.0 90.2,71.5 99.4,64.7 108.7,58.6 117.9,53.0 127.2,47.8 136.4,43.1 145.6,38.9 154.9,35.0 164.1,31.4 173.4,28.2 182.6,25.3 191.8,22.7 201.1,20.4 210.3,18.4 219.6,16.7 228.8,15.3 238.0,14.1 247.3,13.2 256.5,12.5 265.8,12.1 275.0,12.0 284.2,12.1 293.5,12.5 302.7,13.2 312.0,14.1 321.2,15.3 330.4,16.7 339.7,18.4 348.9,20.4 358.2,22.7 367.4,25.3 376.6,28.2 385.9,31.4 395.1,35.0 404.4,38.9 413.6,43.1 422.8,47.8 432.1,53.0 441.3,58.6 450.6,64.7 459.8,71.5 469.0,79.0 478.3,87.3 487.5,96.9 496.8,108.2 506.0,124.0" fill="none" stroke="#2A5C8A" stroke-width="2"/>
+          <circle cx="275" cy="12" r="3.5" fill="#9C2A3B"/>
+          <text x="275" y="8" font-size="9.5" fill="#9C2A3B" text-anchor="middle">迷いが最大（1 bit）</text>
+          <circle cx="67" cy="92" r="3" fill="#14232C"/><text x="72" y="90" font-size="9" fill="#4A5C66">5% → 0.29</text>
+          <circle cx="183" cy="25" r="3" fill="#14232C"/><text x="188" y="23" font-size="9" fill="#4A5C66">30% → 0.88</text>
+          <circle cx="414" cy="43" r="3" fill="#14232C"/><text x="409" y="41" font-size="9" fill="#4A5C66" text-anchor="end">80% → 0.72</text>
+        </svg>
+        <p class="eigcap">診察をすると、患者はこの曲線の上を左右に動きます。<b>動いた先で山がどれだけ低くなったか</b>が、その診察で得られた情報です。</p>
+
+        <h4 class="eigh">2. なぜ「期待」が付くのか</h4>
+        <p>やる前は、陽性になるか陰性になるか分かりません。だから
+        「陽性だった場合に減る迷い」と「陰性だった場合に減る迷い」を、
+        <b>それぞれの起こりやすさで重みづけして平均</b>します。この平均が「<b>期待</b>情報利得」です。</p>
+        <p>Benish はこれを、<b>「最終的に診断を知ったときの<i>驚き</i>を、検査が平均してどれだけ減らすか」</b>と言い換えています（Methods Inf Med 2009; PMID 19562229）。</p>
+
+        <h4 class="eigh">3. ここが本題 ── LR が大きい所見が、価値が高いとは限らない</h4>
+        <p>肺炎を 30% 疑っている患者に、4つの所見をそれぞれ取ったとします。</p>
+        <table class="eigt">
+          <tr><th>所見</th><th>LR+</th><th>LR−</th><th>期待情報利得</th></tr>
+          <tr><td>ヤギ音</td><td>6.17</td><td>0.96</td><td>0.011 bit</td></tr>
+          <tr><td>クラックル</td><td>2.00</td><td>0.80</td><td>0.024 bit</td></tr>
+          <tr><td>打診濁音（肺炎）</td><td>2.62</td><td>―</td><td>0.000 bit</td></tr>
+          <tr><td><b>バイタル異常</b></td><td><b>1.30</b></td><td><b>0.25</b></td><td><b>0.047 bit</b></td></tr>
+        </table>
+        <p><b>LR+ が最も大きいヤギ音が、最も価値が低い。LR+ 1.30 のバイタル異常が、その4倍の情報をもたらします。</b></p>
+        <p>理由は感度です。ヤギ音の感度は約5%。<b>98% の確率で「陰性」になり</b>、その陰性は LR− 0.96 ＝ ほとんど確率を動かしません。
+        つまり「たまに出れば強いが、ほとんど出ない」所見です。平均すれば、得られる情報はわずかになります。<br>
+        逆にバイタル異常は LR+ こそ小さいものの、<b>陰性に意味があり（LR− 0.25）、しかも高い頻度で決着がつく</b>。だから平均では勝ちます。<br>
+        打診濁音が 0.000 bit なのは、LR− が報告されていない（＝陰性から何も学べない）ためです。</p>
+
+        <h4 class="eigh">4. 同じ所見でも、患者によって価値が変わる</h4>
+        <p>同じヤギ音を、事前確率の違う3人に使ってみます。</p>
+        <table class="eigt">
+          <tr><th>事前確率</th><th>陽性なら</th><th>陰性なら</th><th>期待情報利得</th></tr>
+          <tr><td>5%</td><td>24.5%</td><td>4.8%</td><td>0.003 bit</td></tr>
+          <tr><td><b>30%</b></td><td>72.6%</td><td>29.1%</td><td><b>0.011 bit</b></td></tr>
+          <tr><td>80%</td><td>96.1%</td><td>79.3%</td><td>0.007 bit</td></tr>
+        </table>
+        <p><b>同じ所見・同じ尤度比なのに、得られる情報は3倍以上違います。</b>
+        迷っている患者（50%に近い）ほど、同じ診察から多くを得られる。ほぼ決まっている患者に同じ所見を取っても、ほとんど何も増えません。</p>
+        <p>感度・特異度や ROC 曲線下面積（AUC）は<b>事前確率に依存しない指標</b>なので、この違いを表せません。
+        Benish は <b>「AUC は診断情報の尺度ではない」</b>と明言しています（Methods Inf Med 2003; PMID 12874659）。
+        <b>「この所見はよい所見か」ではなく「この患者にいまこの所見を取る価値があるか」</b>を問うなら、bit が要ります。</p>
+
+        <h4 class="eigh">5. なぜパーセントではなく bit なのか</h4>
+        <p>同じ「10ポイントの動き」でも、いまいる場所で意味がまるで違うからです。</p>
+        <div class="eigcmp">50% → 60% ： 迷い 1.000 → 0.971　＝ <b>0.03 bit</b> しか減らない<br>
+        89% → 99% ： 迷い 0.500 → 0.081　＝ <b>0.42 bit</b> 減る</div>
+        <p>どちらも10ポイントですが、迷いの減り方は <b>14倍</b> 違います。パーセントの差では、この違いを取り違えます。</p>
+
+        <h4 class="eigh">6. 数字の感覚</h4>
+        <p>0.5 bit 以上なら大きく動く。0.1〜0.3 bit ならそれなり。0.05 bit を切ると確率はほとんど動きません。</p>
+        <p class="eigwarn">⚠️ <b>ただし bit が小さいからといって切り捨てないでください。</b>
+        閾値のすぐそばにいるときは、わずかな動きでも除外域・確定域に入ります。
+        各行の「判断が変わる確率」を必ず併せて見てください。</p>
+
+        <h4 class="eigh">出典と位置づけ</h4>
+        <p>情報理論を診断検査に応用する考え方は、William A. Benish による一連の仕事として確立しています
+        ── 相対エントロピー（1999, PMID 10231083）、情報グラフ（2002, PMID 12061117）、
+        相互情報量（2003, PMID 12874659）、直観的・公理的な導出（2009, PMID 19562229）、
+        そして総説（<i>Entropy</i> 2020, PMID 33285872, PMC7516534, オープンアクセス）。<br>
+        ただしこれらは医療情報学の文献であり、<b>ベッドサイドの身体診察の教科書（McGee・Bates・Sapira）は尤度比までで、bit は使っていません</b>。
+        身体診察の一手ごとの価値を bit で順位づけして提示する試みは、少なくとも一般的ではありません。</p>
+      </div>
+    </details>
     <ul class="rank" id="rank"></ul>
   </section>
 </div>
@@ -247,6 +370,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 <section class="panel">
   <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
   <div class="verdict" id="verdict"></div>
+  <div id="mech"></div>
   <div class="zones" id="zones"></div>
   <div class="note" id="reachNote" style="margin-top:10px"></div>
   <details>
@@ -357,7 +481,7 @@ const DB = {
       {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:8.7, ln:1.0,
        ci:[2.2,33.8], cl:"fluid", tag:"src",
        note:"統合LR+ 8.7 (2.2–33.8)。単一所見として最も精度が高い。LR− の統合値は公表されておらず、他所見の 0.21 を流用すると誤りになるため陰性側は無情報とした（Kalantri 単独では LR− 0.1 の報告があるが出所が異なるので併用しない）"},
-      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.2,
+      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.21,
        cin:[0.12,0.37], cl:"fluid", tag:"src",
        note:"McGee EBM Box 29.1（Kalantri 感度82%・特異度86%）。Wong の統合 LR− 0.21 (0.12–0.37) とほぼ一致しており、独立の2経路が同じ値に収束している。除外に使える数少ない所見"},
       {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
@@ -422,7 +546,7 @@ const DB = {
     src:[
       "Straus SE, McAlister FA, Sackett DL, Deeks JJ. The accuracy of patient history, wheezing, and laryngeal measurements in diagnosing obstructive airway disease. CARE-COAD1 Group. JAMA. 2000;283(14):1853-7. PMID 10770147（14か国25施設309例）",
       "Holleman DR Jr, Simel DL. Does the clinical examination predict airflow limitation? JAMA. 1995;273(4):313-9. PMID 7815660",
-      "McGee S. Evidence-Based Physical Diagnosis. 4th ed. EBM Box 29.2（過共鳴）"
+      "Oshaug K, Halvorsen PA, Melbye H. Should chest examination be reinstated in the early diagnosis of chronic obstructive pulmonary disease? Int J Chron Obstruct Pulmon Dis. 2013;8:369-77. PMID 23983462（プライマリケア375例、過共鳴）"
     ],
     f:[
       {id:"whz", cat:"聴診", nm:"聴診上の喘鳴", lp:2.7, ln:0.9,
@@ -432,8 +556,8 @@ const DB = {
        note:"原著の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。LR− は個別には報告がない"},
       {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:2.8, ln:1.0, cl:"hyper", tag:"src",
        note:"原著の多変量で有意だった4因子のひとつ。喉頭下降度（laryngeal descent）は別の指標で、そちらは LR 0.9–1.2 と役に立たない。混同しない"},
-      {id:"hyp", cat:"打診", nm:"過共鳴", lp:7.3, ln:0.8, cl:"hyper", tag:"src",
-       note:"McGee EBM Box 29.2：慢性気流閉塞に対して感度21–33%・特異度94–98%。打診所見としては最も裏づけが確かなもの"},
+      {id:"hyp", cat:"打診", nm:"過共鳴", lp:9.5, ln:0.8, cl:"hyper", tag:"src",
+       note:"Oshaug 2013（プライマリケア375例）：感度20.8%・特異度97.8%。20.8÷2.2 ＝ 9.45 で原著の LR+ 9.5 と一致する。陰性側も同じ2値から (100−20.8)÷97.8 ＝ 0.81。原著は95%信頼区間を報告していないため区間は置かない。打診所見としては最も裏づけが確かなもの"},
       {id:"swz", cat:"問診", nm:"患者本人が申告する喘鳴", lp:3.1, ln:0.58, cl:"airway", tag:"chk",
        note:"Straus 2000 の abstract に該当する値がない（abstract にあるのは「COPDの自己申告歴 LR 7.3」で別の項目）。一次未確認"},
       {id:"fet", cat:"聴診", nm:"強制呼気時間 8秒超（60歳以上）", lp:4.08, ln:1.0,
@@ -469,6 +593,15 @@ function ss(f){ // recover sensitivity / specificity from LR pair
   return {sens, spec};
 }
 function H(p){ p=clamp(p,1e-9,1-1e-9); return -(p*Math.log2(p)+(1-p)*Math.log2(1-p)); }
+
+/* 機序クラスタの表示名。cl は内部コードなので、画面には必ずこの名前で出す。
+   「どの生理を測っているか」が読めないと、なぜ減衰するのかが伝わらない。 */
+const CLNAME = {
+  impression:"全体的な臨床像", consol:"肺の実質化", fluid:"胸腔の液体貯留",
+  expand:"半胸郭の可動性低下", pleura:"胸膜の炎症",
+  filling:"心充満圧の上昇", venous:"体静脈のうっ滞", valve:"弁の異常",
+  airway:"気流の閉塞", hyper:"肺の過膨張", expose:"曝露歴"
+};
 
 /* applied findings -> ordered steps with correlation shrinkage */
 function steps(){
@@ -722,6 +855,51 @@ function drawVerdict(){
     + (C.unknown>0 ? `　<span class="noci">（${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い）</span>` : "")
     + `<br><span class="noci">上の軸に重ねた帯がこの範囲。点推定の一点だけを見て判断しないこと。</span></div>`;
   document.getElementById("verdict").innerHTML = `事後確率 <b style="font-family:var(--mono)">${pct(p)}%</b> — ${V}${more}${ciLine}`;
+  /* 機序ごとの読み方。オッズ（疾患の確率）と、所見そのものの確からしさは別の軸である。
+     同一機序の所見が増えても確率はほとんど動かないが、取り違えの可能性は下がる。
+     逆に同一機序で向きが食い違えば、どちらかが誤りという強い信号になる。
+     この2つを表示しないと、κ による減衰が「所見を無視している」と誤解される。 */
+  (function(){
+    const box=document.getElementById("mech");
+    /* drawVerdict() のスコープには S / pn が無いので自前で取る（p は上で取得済み）。 */
+    const S=steps(), pn=postNaive();
+    if(!S.length){ box.innerHTML=""; return; }
+    const g={};
+    S.forEach(s=>{ (g[s.f.cl]=g[s.f.cl]||[]).push(s); });
+    const cls=Object.keys(g);
+    const damped=S.filter(s=>s.damp).length;
+    const clash=cls.filter(c=>g[c].length>1 && new Set(g[c].map(s=>s.dir>0)).size>1);
+    const agree=cls.filter(c=>g[c].length>1 && new Set(g[c].map(s=>s.dir>0)).size===1);
+    const diff=(pn-p)*100;
+    const head = damped
+      ? `同じ機序の所見が重なっています。素朴に掛け算すると過大評価になるため、2つ目以降を減衰させています。<br>`
+        + `素朴ベイズ <b>${pct(pn)}%</b> → 相関補正後 <b>${pct(p)}%</b>`
+        + `<span class="md">${diff>=0?"−":"+"}${Math.abs(diff).toFixed(1)} ポイント</span>`
+        + `<span class="mk">κ=${kap.toFixed(2)}</span>`
+      : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">κ=${kap.toFixed(2)}</span>`;
+    const rows = cls.map(c=>{
+      const a=g[c], n=a.length;
+      const mixed = n>1 && new Set(a.map(s=>s.dir>0)).size>1;
+      const names = a.map(s=>esc(s.f.nm)+(s.dir>0?"（+）":"（−）")).join("　");
+      const prod = a.reduce((x,s)=>x*s.eff,1);
+      const tag = mixed
+        ? `<span class="ct clash">⚠ 食い違い ── 同じ機序なのに向きが逆。どちらかが誤りの可能性。取り直しを</span>`
+        : (n>1
+          ? `<span class="ct agree">一致 ${n}件 ── 確率はほぼ動かないが、取り違えの可能性は下がる</span>`
+          : `<span class="ct alone">単独 ── 取り違えの可能性が残る</span>`);
+      return `<li><span class="contrib">オッズ寄与 ×${prod.toFixed(2)}</span>`
+           + `<span class="cl">${esc(CLNAME[c]||c)}</span>${tag}`
+           + `<div class="fs">${names}</div></li>`;
+    }).join("");
+    const foot = `<b>確率を動かすのは「別の機序の所見」です。</b>`
+      + `同じ機序を別経路で測り直しても、疾患についての新しい証拠にはならないので確率はほとんど動きません。`
+      + `それでも意味はあります ── 一致した所見が増えるほど、「聞き間違い・触り間違いだった」可能性は下がる。`
+      + `確率ではなく、<b>その所見が本物だという確信</b>が上がるのです。`
+      + (clash.length? `<br><b style="color:var(--rise)">向きの食い違いがある機序があります。</b>同じ生理を測って逆の答えが出ているので、まず手技を確認してください。` : "")
+      + (agree.length? `<br>一致している機序：${agree.map(c=>esc(CLNAME[c]||c)).join("、")}。` : "");
+    box.innerHTML = `<div class="mech"><div class="mh">⌁ 機序ごとの読み方<br>${head}</div>`
+                  + `<ul>${rows}</ul><div class="mfoot">${foot}</div></div>`;
+  })();
   document.getElementById("zones").innerHTML =
     [["除外域（<"+tTest+"%）",reachable[0]],["グレーゾーン",reachable[1]],["確定域（≧"+tTreat+"%）",reachable[2]]]
     .map(([lb,v],i)=>`<div class="zone" style="${zoneOf(p)===i?'background:#EDF2F5':''}"><b style="color:${i===2?'var(--rise)':i===0?'var(--fall)':'var(--ink)'}">${(v*100).toFixed(0)}%</b><span>${lb}に着地</span></div>`).join("");
