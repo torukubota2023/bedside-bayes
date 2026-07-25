@@ -195,7 +195,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.1.0</span>
+    <span class="ver" id="verLabel">v2.1.2</span>
   </div>
 </header>
 
@@ -257,7 +257,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 
   <section class="panel">
     <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
-    <div class="note" style="margin-bottom:8px">現在の確率で、<b>まだ取っていない所見</b>を期待情報利得（bit）の大きい順に並べたもの。「やる価値のある診察」を数量で示す。</div>
+    <div class="note" style="margin-bottom:8px"><b>次にどの診察をすれば、いちばん迷いが減るか</b>の順番です。<br>やる前は陽性か陰性か分かりません。そこで<b>陽性だった場合と陰性だった場合の両方を、それぞれの起こりやすさで重みづけして平均</b>し、確率がどれだけ動きそうかを1つの数にしています（単位 bit）。「期待」が付くのはこのためです。<br><b>1 bit ＝ 五分五分の迷いが、ひとつ完全に解ける</b>だけの情報量。0.1 bit を切ると、確率はほとんど動きません。<br>ただし<b>「確率が動かない」ことと「判断が変わらない」ことは別</b>です。閾値のすぐ近くにいれば、わずかな動きでも除外域・確定域に入ります。そのため各行には <b>「判断が変わる確率」</b> を併記しています ── <b>実務ではこちらが決め手になることが多い</b>ので、bit が小さくてもこの数字が大きい所見は見逃さないでください。</div>
     <ul class="rank" id="rank"></ul>
   </section>
 </div>
