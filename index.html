@@ -177,7 +177,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.0.0</span>
+    <span class="ver" id="verLabel">v2.0.1</span>
   </div>
 </header>
 
@@ -357,7 +357,7 @@ const DB = {
       {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:8.7, ln:1.0,
        ci:[2.2,33.8], cl:"fluid", tag:"src",
        note:"統合LR+ 8.7 (2.2–33.8)。単一所見として最も精度が高い。LR− の統合値は公表されておらず、他所見の 0.21 を流用すると誤りになるため陰性側は無情報とした（Kalantri 単独では LR− 0.1 の報告があるが出所が異なるので併用しない）"},
-      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.2,
+      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.21,
        cin:[0.12,0.37], cl:"fluid", tag:"src",
        note:"McGee EBM Box 29.1（Kalantri 感度82%・特異度86%）。Wong の統合 LR− 0.21 (0.12–0.37) とほぼ一致しており、独立の2経路が同じ値に収束している。除外に使える数少ない所見"},
       {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
@@ -422,7 +422,7 @@ const DB = {
     src:[
       "Straus SE, McAlister FA, Sackett DL, Deeks JJ. The accuracy of patient history, wheezing, and laryngeal measurements in diagnosing obstructive airway disease. CARE-COAD1 Group. JAMA. 2000;283(14):1853-7. PMID 10770147（14か国25施設309例）",
       "Holleman DR Jr, Simel DL. Does the clinical examination predict airflow limitation? JAMA. 1995;273(4):313-9. PMID 7815660",
-      "McGee S. Evidence-Based Physical Diagnosis. 4th ed. EBM Box 29.2（過共鳴）"
+      "Oshaug K, Halvorsen PA, Melbye H. Should chest examination be reinstated in the early diagnosis of chronic obstructive pulmonary disease? Int J Chron Obstruct Pulmon Dis. 2013;8:369-77. PMID 23983462（プライマリケア375例、過共鳴）"
     ],
     f:[
       {id:"whz", cat:"聴診", nm:"聴診上の喘鳴", lp:2.7, ln:0.9,
@@ -432,8 +432,8 @@ const DB = {
        note:"原著の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。LR− は個別には報告がない"},
       {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:2.8, ln:1.0, cl:"hyper", tag:"src",
        note:"原著の多変量で有意だった4因子のひとつ。喉頭下降度（laryngeal descent）は別の指標で、そちらは LR 0.9–1.2 と役に立たない。混同しない"},
-      {id:"hyp", cat:"打診", nm:"過共鳴", lp:7.3, ln:0.8, cl:"hyper", tag:"src",
-       note:"McGee EBM Box 29.2：慢性気流閉塞に対して感度21–33%・特異度94–98%。打診所見としては最も裏づけが確かなもの"},
+      {id:"hyp", cat:"打診", nm:"過共鳴", lp:9.5, ln:0.8, cl:"hyper", tag:"src",
+       note:"Oshaug 2013（プライマリケア375例）：感度20.8%・特異度97.8%。20.8÷2.2 ＝ 9.45 で原著の LR+ 9.5 と一致する。陰性側も同じ2値から (100−20.8)÷97.8 ＝ 0.81。原著は95%信頼区間を報告していないため区間は置かない。打診所見としては最も裏づけが確かなもの"},
       {id:"swz", cat:"問診", nm:"患者本人が申告する喘鳴", lp:3.1, ln:0.58, cl:"airway", tag:"chk",
        note:"Straus 2000 の abstract に該当する値がない（abstract にあるのは「COPDの自己申告歴 LR 7.3」で別の項目）。一次未確認"},
       {id:"fet", cat:"聴診", nm:"強制呼気時間 8秒超（60歳以上）", lp:4.08, ln:1.0,
