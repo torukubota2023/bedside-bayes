@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ベイズ診察エンジン">
+  <rect width="512" height="512" fill="#14232C"/>
+  <path d="M72 123 L72 174 L225 174 L225 236 L369 236 L369 338" fill="none" stroke="#E9EDEF" stroke-width="18" stroke-linejoin="round"/>
+  <circle cx="72" cy="123" r="15" fill="#FBFCFD"/>
+  <line x1="72" y1="338" x2="440" y2="338" stroke="#E9EDEF" stroke-width="14"/>
+  <g stroke="#7A8B94" stroke-width="8">
+    <line x1="72" y1="338" x2="72" y2="364"/><line x1="145" y1="338" x2="145" y2="364"/>
+    <line x1="219" y1="338" x2="219" y2="364"/><line x1="292" y1="338" x2="292" y2="364"/>
+    <line x1="366" y1="338" x2="366" y2="364"/><line x1="440" y1="338" x2="440" y2="364"/>
+  </g>
+  <circle cx="369" cy="338" r="32" fill="#9C2A3B"/>
+</svg>

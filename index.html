@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<!-- ═══ 公開前に編集するのはこの3点だけ ═══
+     1. 著者名  : （あなたの名前）        → 2か所（meta author / 免責欄）
+     2. 公開URL : https://USERNAME.github.io/bedside-bayes/ → 3か所（canonical / og:url / og:image）
+     3. 連絡先  : （連絡先メールまたはフォームURL）  → 1か所（免責欄）
+     置換の一括実行は README.md の「公開手順 1」参照。 ═══ -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ベイズ診察エンジン — 身体診察はどこまで確率を動かせるか</title>
+<meta name="description" content="尤度比・期待情報利得・到達可能域で身体診察の価値を可視化する教育ツール。肺炎・胸水・急性心不全・気流閉塞。出典つき、無料、登録不要、データは端末外に出ません。">
+<meta name="author" content="（あなたの名前）">
+<meta name="theme-color" content="#14232C">
+<meta name="color-scheme" content="light">
+<link rel="canonical" href="https://USERNAME.github.io/bedside-bayes/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ベイズ診察エンジン｜身体診察はどこまで確率を動かせるか">
+<meta property="og:description" content="事前確率に所見を積み、事後確率の軌跡と「まだ取っていない所見で到達しうる範囲」を描く。次にとるべき診察を期待情報利得（bit）で順位づけ。">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:url" content="https://USERNAME.github.io/bedside-bayes/">
+<meta property="og:image" content="https://USERNAME.github.io/bedside-bayes/icons/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ベイズ診察">
+<style>
+:root{
+  --ground:#E9EDEF; --panel:#FBFCFD; --rule:#C3CED4; --rule-2:#DDE4E8;
+  --ink:#14232C; --ink-2:#4A5C66; --ink-3:#7A8B94;
+  --rise:#9C2A3B; --fall:#2A5C8A; --flag:#A8791F;
+  --serif:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif;
+  --sans:"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,-apple-system,sans-serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--ink); font-family:var(--sans);
+  font-size:14px; line-height:1.7;
+  background-image:linear-gradient(var(--rule-2) 1px,transparent 1px),linear-gradient(90deg,var(--rule-2) 1px,transparent 1px);
+  background-size:28px 28px; background-position:-1px -1px;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 18px 90px}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-2);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.3;margin:6px 0 4px;letter-spacing:.02em}
+h1 .sub{display:block;font-size:14px;font-family:var(--sans);font-weight:400;color:var(--ink-2);letter-spacing:0;margin-top:6px}
+.panel{background:var(--panel);border:1px solid var(--rule);padding:16px 18px;margin-bottom:16px}
+.panel h2{font-family:var(--serif);font-size:16px;margin:0 0 12px;font-weight:600;
+  display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--rule-2);padding-bottom:8px}
+.panel h2 small{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);font-weight:400}
+.tabs{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--ink);margin-bottom:16px;background:var(--panel)}
+.tabs button{flex:1 1 auto;min-width:120px;border:0;border-right:1px solid var(--rule);background:transparent;
+  font-family:var(--serif);font-size:14px;padding:11px 8px;cursor:pointer;color:var(--ink-2);transition:background .15s}
+.tabs button:last-child{border-right:0}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.tabs button:hover:not([aria-pressed="true"]){background:#E4EAED}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 22px}
+.ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--ink-2)}
+.ctrl label b{font-family:var(--mono);font-size:15px;color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--ink);margin:4px 0 0}
+.track-panel{padding:10px 6px 4px;overflow:hidden}
+svg{display:block;width:100%;height:auto}
+#track text{font-family:var(--sans)}
+#track text.m{font-family:var(--mono)}
+#track text.s{font-family:var(--serif)}
+.grid2{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.cat{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-3);
+  border-bottom:1px solid var(--rule-2);padding:14px 0 4px;margin-bottom:6px}
+.cat:first-of-type{padding-top:0}
+.fnd{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dotted var(--rule-2)}
+.fnd .nm{font-size:13.5px;line-height:1.45}
+.fnd .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:1px}
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:1px 4px;border:1px solid;margin-right:5px;vertical-align:1px}
+.b-src{color:#1F5C3A;border-color:#1F5C3A}
+.b-der{color:var(--fall);border-color:var(--fall)}
+.b-est{color:var(--flag);border-color:var(--flag)}
+.b-chk{color:var(--rise);border-color:var(--rise);background:#F7E9EB}
+.tri{display:flex;border:1px solid var(--rule)}
+.tri button{border:0;background:transparent;font-family:var(--mono);font-size:11px;padding:5px 9px;cursor:pointer;color:var(--ink-2);border-right:1px solid var(--rule-2)}
+.tri button:last-child{border-right:0}
+.tri button[aria-pressed="true"]{color:#fff}
+.tri button.pos[aria-pressed="true"]{background:var(--rise)}
+.tri button.neg[aria-pressed="true"]{background:var(--fall)}
+.tri button.non[aria-pressed="true"]{background:var(--ink-3)}
+.rank{list-style:none;margin:0;padding:0;counter-reset:r}
+.rank li{padding:9px 0;border-bottom:1px dotted var(--rule-2)}
+.rank .hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rank .nm{font-size:13.5px}
+.rank .bits{font-family:var(--mono);font-size:12px;color:var(--ink);white-space:nowrap}
+.bar{height:5px;background:#E2E9ED;margin:5px 0 4px;position:relative}
+.bar i{display:block;height:100%;background:var(--ink)}
+.rank .br{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.rank .br .up{color:var(--rise)} .rank .br .dn{color:var(--fall)}
+.verdict{font-family:var(--serif);font-size:15px;padding:10px 12px;border-left:4px solid var(--ink);background:#F1F5F7;margin-top:10px}
+.zones{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:10px}
+.zone{background:var(--panel);padding:8px 10px;text-align:center}
+.zone b{display:block;font-family:var(--mono);font-size:19px}
+.zone span{font-size:11px;color:var(--ink-2)}
+.note{font-size:12px;color:var(--ink-2);line-height:1.75}
+.note code{font-family:var(--mono);font-size:11.5px;background:#EEF2F4;padding:1px 4px}
+details{border-top:1px solid var(--rule-2);padding-top:8px;margin-top:10px}
+summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink-2)}
+.srcs{font-size:11.5px;color:var(--ink-2);margin:8px 0 0;padding-left:1.1em}
+.srcs li{margin-bottom:4px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{font-family:var(--sans);font-size:12px;padding:6px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--ink);color:#fff}
+.btn.ghost{border-color:var(--rule);color:var(--ink-2)}
+.editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px}
+.editor input,.editor select{font-family:var(--sans);font-size:12px;padding:6px;border:1px solid var(--rule);background:#fff;color:var(--ink);width:100%}
+.case{border:1px solid var(--rule);padding:9px 11px;margin-bottom:8px;cursor:pointer;background:transparent;text-align:left;width:100%;font-family:var(--sans)}
+.case:hover{background:#EEF3F5}
+.case b{font-family:var(--serif);font-size:13.5px;display:block}
+.case span{font-size:11.5px;color:var(--ink-2)}
+:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.bar-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0}
+.bar-tools .btn{font-size:12px}
+.bar-tools .ver{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
+  font-size:13px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+.toast.on{opacity:1}
+.legal{font-size:12px;line-height:1.85;color:var(--ink-2)}
+.legal b{color:var(--ink)}
+.legal ul{padding-left:1.2em;margin:6px 0}
+noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--rise);background:#fff}
+@media print{
+  body{background:#fff;font-size:11pt}
+  .tabs,.bar-tools,.toast,details,.ctrl input,footer .legal,#rank .bar{display:none}
+  .panel{border:1px solid #999;break-inside:avoid;page-break-inside:avoid}
+  .wrap{max-width:100%;padding:0}
+  a[href]:after{content:""}
+}
+footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padding-top:12px;margin-top:22px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Bedside Bayes Engine ／ 尤度比・情報量・到達可能域</div>
+  <h1>身体診察はどこまで確率を動かせるか
+    <span class="sub">事前確率と決定閾値を置き、所見を一つずつ積む。左に伸びれば除外へ、右に伸びれば確定へ。<br>
+    薄い雲は「まだ取っていない所見を全部取ったときに到達しうる確率の分布」— 診察の射程そのもの。</span>
+  </h1>
+  <div class="bar-tools">
+    <button class="btn" id="bShare">この設定のリンクをコピー</button>
+    <button class="btn ghost" id="bPrint">印刷 / PDF</button>
+    <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
+    <span class="ver" id="verLabel">v1.0.0</span>
+  </div>
+</header>
+
+<noscript>このツールは計算をすべて端末内のJavaScriptで行います。JavaScriptを有効にしてください。</noscript>
+
+<div class="tabs" id="tabs" role="group" aria-label="対象疾患"></div>
+
+<section class="panel">
+  <h2>1. 設定 <small>PRIOR &amp; THRESHOLDS</small></h2>
+  <div class="ctrls">
+    <div class="ctrl">
+      <label for="pre">事前確率（この患者が疾患を持つ見込み） <b id="preV">20%</b></label>
+      <input type="range" id="pre" min="-6.9" max="4.6" step="0.05" value="-1.386">
+    </div>
+    <div class="ctrl">
+      <label for="tTest">検査閾値（これ未満なら追加検査せず経過観察） <b id="tTestV">5%</b></label>
+      <input type="range" id="tTest" min="0.5" max="40" step="0.5" value="5">
+    </div>
+    <div class="ctrl">
+      <label for="tTreat">治療閾値（これ以上なら検査せず治療開始） <b id="tTreatV">70%</b></label>
+      <input type="range" id="tTreat" min="30" max="99" step="1" value="70">
+    </div>
+    <div class="ctrl">
+      <label for="kap">所見の相関補正 κ <b id="kapV">0.75</b></label>
+      <input type="range" id="kap" min="0.2" max="1" step="0.05" value="0.75">
+      <div class="note" style="margin-top:2px">同一の生理学的機序に属する2つ目以降の所見は <code>logLR × κⁿ</code> に減衰。κ=1 が素朴ベイズ（教科書どおりのLR掛け算）。</div>
+    </div>
+  </div>
+</section>
+
+<section class="panel track-panel">
+  <svg id="track" viewBox="0 0 1000 320" role="img" aria-label="確率軌跡"></svg>
+</section>
+
+<div class="grid2">
+  <section class="panel">
+    <h2>2. 所見をとる <small>FINDINGS</small></h2>
+    <div id="findings"></div>
+    <details>
+      <summary>＋ 所見を追加・LRを差し替える</summary>
+      <div class="editor">
+        <input id="eName" placeholder="所見名">
+        <input id="eCat" placeholder="カテゴリ（例: 聴診）">
+        <input id="eLp" type="number" step="0.1" placeholder="LR+">
+        <input id="eLn" type="number" step="0.01" placeholder="LR−">
+        <input id="eCl" placeholder="機序クラスタ名">
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="eAdd">この所見を追加</button>
+        <button class="btn ghost" id="eExport">現在のパネルをJSONで書き出す</button>
+        <button class="btn ghost" id="eReset">初期値に戻す</button>
+      </div>
+      <div class="note" style="margin-top:8px">追加した所見は <span class="badge b-chk">自作</span> として扱われ、情報利得の計算にも即座に入る。手元のMcGee／JAMA Rational Clinical Examination の値に総入れ替えして、自分の教育用パネルを作れる。</div>
+    </details>
+  </section>
+
+  <section class="panel">
+    <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
+    <div class="note" style="margin-bottom:8px">現在の確率で、<b>まだ取っていない所見</b>を期待情報利得（bit）の大きい順に並べたもの。「やる価値のある診察」を数量で示す。</div>
+    <ul class="rank" id="rank"></ul>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
+  <div class="verdict" id="verdict"></div>
+  <div class="zones" id="zones"></div>
+  <div class="note" id="reachNote" style="margin-top:10px"></div>
+  <details>
+    <summary>症例プリセット</summary>
+    <div id="cases" style="margin-top:8px"></div>
+  </details>
+  <details>
+    <summary>この疾患パネルの出典</summary>
+    <ul class="srcs" id="srcs"></ul>
+  </details>
+  <details>
+    <summary>計算式と前提</summary>
+    <div class="note" style="margin-top:6px">
+      ・事後オッズ ＝ 事前オッズ × ΠLR（相関補正 κ を適用）。<br>
+      ・LR+ と LR− から感度・特異度を復元： <code>spec=(LR⁺−1)/(LR⁺−LR⁻)</code>, <code>sens=LR⁺(1−spec)</code>。<br>
+      ・期待情報利得 ＝ <code>H(p) − [P(+)·H(p₊) + P(−)·H(p₋)]</code>（H は2値エントロピー、単位 bit）。1 bit は「五分五分を完全に決着させる」情報量。<br>
+      ・到達可能域は、未実施所見の全組み合わせ（2ⁿ 分岐）を列挙し、各分岐の生起確率と到達確率を厳密計算したもの。所見間の条件付き独立を仮定しており、κ&lt;1 はその仮定の甘さに対する保険。<br>
+      ・<b>この独立性こそが最大の弱点</b>：濁音・気管支呼吸音・ヤギ音を素朴に掛け算してよいかは未解決（Rational Clinical Examination も同じ留保をつけている）。κ を動かして結論が壊れるなら、その結論はもともと脆い。
+    </div>
+  </details>
+</section>
+
+<footer>
+  <div class="legal" style="margin-bottom:12px">
+    <b>免責</b>：本ツールは確率的推論を学ぶための教育用シミュレータであり、診断・治療の判断を代替するものではありません。
+    表示される確率は、公表された尤度比を条件付き独立と仮定して合成した推計値です。個々の患者への適用の可否と結果の解釈は、
+    使用者自身の臨床判断と責任に属します。<br>
+    <b>プライバシー</b>：入力内容は端末内でのみ処理され、外部に送信されません。サーバへの保存、アクセス解析、
+    広告、Cookie のいずれも使用していません。患者識別情報は入力しないでください。<br>
+    <b>ライセンス</b>：コードは MIT License、解説文とパネル定義は CC BY 4.0（表示：（あなたの名前））。
+    尤度比の数値そのものは各原著論文に帰属します。改変・再配布の際は出典欄を残してください。<br>
+    <b>不具合・数値の指摘</b>：（連絡先メールまたはフォームURL）
+  </div>
+  <b>バッジの意味</b> — <span class="badge b-src">出典</span>論文の報告値そのまま／<span class="badge b-der">導出</span>報告された感度・特異度から計算／<span class="badge b-est">推定</span>報告値がなく、所見の性質から置いた仮値／<span class="badge b-chk">要確認</span>広く流通しているが一次文献を確認しきれていない値。<br>
+  推定値・要確認値は<b>教材としてそのまま使わず</b>、手元の一次文献で差し替えること。エディタで上書きできる。<br>
+  臨床判断の代替ではなく、確率的推論の可視化のための教育ツール。単一施設・単一集団に由来するLRは外挿で容易に壊れる。
+</footer>
+
+</div>
+<script>
+"use strict";
+/* ------------------------------------------------------------------ data */
+const DB = {
+  cap: {
+    name:"市中肺炎", short:"肺炎",
+    pre: 0.20, tTest: 5, tTreat: 60,
+    ctx:"急性咳嗽・発熱で受診。ED受診者の有病率はおよそ20%、プライマリ・ケア外来では10%前後。",
+    src:[
+      "Ebell MH, et al. Accuracy of Signs and Symptoms for the Diagnosis of Community-acquired Pneumonia: A Meta-analysis. Acad Emerg Med. 2020;27(7):541-553.（17研究のメタ解析）",
+      "Metlay JP, Kapoor WN, Fine MJ. Does this patient have community-acquired pneumonia? JAMA. 1997;278(17):1440-5.",
+      "McGee S. Evidence-Based Physical Diagnosis.（胸郭拡張左右差 LR+ 44.1 の算出）"
+    ],
+    f:[
+      {id:"gest", cat:"総合判断", nm:"「肺炎らしい」という全体的な臨床印象", lp:6.32, ln:0.45, cl:"gestalt", tag:"src", note:"LR+ 6.32 (3.58–10.5)／AUROC 0.741。単一所見より強い", ltag:"est"},
+      {id:"vital",cat:"バイタル", nm:"バイタル異常（呼吸数・脈拍・体温・SpO₂ のいずれか）", lp:1.3, ln:0.25, cl:"vitals", tag:"der", note:"陰性LR 0.25 が出典値。感度93%から LR+ を導出"},
+      {id:"fev",  cat:"バイタル", nm:"実測体温の上昇", lp:2.52, ln:0.70, cl:"vitals", tag:"src", note:"LR+ 2.52 (2.02–3.20)", ltag:"est"},
+      {id:"ego",  cat:"聴診", nm:"ヤギ音（エゴフォニー / E-to-A）", lp:6.17, ln:0.96, cl:"consol", tag:"src", note:"LR+ 6.17 (1.34–18.0)。信頼区間は極めて広い", ltag:"est"},
+      {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.30, ln:0.90, cl:"consol", tag:"chk", note:"広く引用される値だが一次文献未確認"},
+      {id:"crk",  cat:"聴診", nm:"クラックル（水泡音・捻髪音）", lp:1.80, ln:0.80, cl:"consol", tag:"est", note:"最も高頻度だが単独では弱い"},
+      {id:"dull", cat:"打診", nm:"限局した打診濁音", lp:2.62, ln:0.90, cl:"consol", tag:"src", note:"LR+ 2.62 (1.14–5.30)", ltag:"est"},
+      {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:44.1, ln:0.96, cl:"expand", tag:"chk", note:"McGee算出。κ 0.85 と再現性は高いが単一研究由来。過大評価に注意"}
+    ],
+    cases:[
+      {t:"38歳・発熱と咳3日／外来", d:"事前10%。バイタル異常なし、聴診で異常なし。", pre:0.10, set:{vital:-1, crk:-1, dull:-1}},
+      {t:"79歳・食欲低下と頻呼吸／救急外来", d:"事前30%。呼吸数28、右下肺野に濁音とヤギ音。", pre:0.30, set:{vital:1, dull:1, ego:1}}
+    ]
+  },
+  eff: {
+    name:"胸水", short:"胸水",
+    pre: 0.20, tTest: 5, tTreat: 65,
+    ctx:"呼吸困難・胸部異常影の鑑別。診察が最も切れ味を発揮する領域のひとつ。",
+    src:[
+      "Wong CL, Holroyd-Leduc J, Straus SE. Does this patient have a pleural effusion? JAMA. 2009;301(3):309-317.",
+      "Kalantri S, et al.（胸郭拡張左右差 感度74%・特異度91%）"
+    ],
+    f:[
+      {id:"dull", cat:"打診", nm:"打診濁音", lp:8.7, ln:0.40, cl:"fluid", tag:"src", note:"LR+ 8.7 (2.2–33.8)。単一所見として最も精度が高い", ltag:"est"},
+      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.9, ln:0.21, cl:"fluid", tag:"der", note:"陰性LR 0.21 が出典値。感度82%・特異度86%から導出。除外に使える数少ない所見"},
+      {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.29, cl:"expand", tag:"src", note:"感度74%・特異度91%"},
+      {id:"bs",   cat:"聴診", nm:"呼吸音の減弱・消失", lp:5.0, ln:0.40, cl:"fluid", tag:"est", note:"報告範囲が広い（感度42–88%, 特異度83–90%）ため中央値で仮置き"},
+      {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:5.3, ln:0.96, cl:"pleura", tag:"der", note:"感度5.3%・特異度99%。あれば強いが、まず無い"},
+      {id:"ap",   cat:"打診", nm:"聴診打診法（胸骨柄を叩き背部で聴取）の減弱", lp:4.0, ln:0.50, cl:"fluid", tag:"est", note:"研究間のばらつきが大きい"}
+    ],
+    cases:[
+      {t:"64歳・労作時呼吸困難／外来", d:"事前20%。振盪低下なし、拡張左右差なし。", pre:0.20, set:{fre:-1, exp:-1}},
+      {t:"71歳・悪性腫瘍既往で呼吸困難", d:"事前35%。右下背部に濁音、振盪低下、拡張左右差。", pre:0.35, set:{dull:1, fre:1, exp:1}}
+    ]
+  },
+  hf: {
+    name:"急性心不全（救急外来の呼吸困難）", short:"心不全",
+    pre: 0.40, tTest: 10, tTreat: 70,
+    ctx:"救急外来で呼吸困難を主訴とする患者の40〜50%が心不全。COPD増悪・肺炎との鑑別が主戦場。",
+    src:[
+      "Wang CS, FitzGerald JM, Schulzer M, Mak E, Ayas NT. Does this dyspneic patient in the emergency department have congestive heart failure? JAMA. 2005;294(15):1944-56.",
+      "Maisel AS, et al. Breathing Not Properly Multinational Study.（BNP）"
+    ],
+    f:[
+      {id:"s3",  cat:"聴診（心）", nm:"III音（心室充満ギャロップ）", lp:11.0, ln:0.88, cl:"filling", tag:"src", note:"LR+ 11。ただし観察者間一致は低く、救急外来の騒音下では聴取困難", ltag:"est"},
+      {id:"jvd", cat:"視診（頸部）", nm:"頸静脈怒張", lp:5.1, ln:0.66, cl:"venous", tag:"src", note:"LR+ 5.1", ltag:"est"},
+      {id:"hjr", cat:"触診", nm:"肝頸静脈逆流", lp:6.4, ln:0.79, cl:"venous", tag:"chk", note:"広く引用されるが一次文献未確認"},
+      {id:"crk", cat:"聴診（肺）", nm:"ラ音（crackles）", lp:2.8, ln:0.51, cl:"congest", tag:"src", note:"LR+ 2.8。無くてもうっ血は否定できない", ltag:"est"},
+      {id:"mur", cat:"聴診（心）", nm:"心雑音（新規を含む）", lp:2.6, ln:0.81, cl:"valve", tag:"src", note:"LR+ 2.6", ltag:"est"},
+      {id:"ede", cat:"視診（下肢）", nm:"下腿浮腫", lp:2.3, ln:0.64, cl:"venous", tag:"src", note:"LR+ 2.3", ltag:"est"},
+      {id:"ort", cat:"問診", nm:"起坐呼吸", lp:2.2, ln:0.65, cl:"symptom", tag:"chk", note:"一次文献未確認"},
+      {id:"cxr", cat:"参考：検査", nm:"胸部X線の肺静脈うっ血", lp:12.0, ln:0.48, cl:"imaging", tag:"chk", note:"診察と比較するための参照。一次文献未確認"},
+      {id:"bnp", cat:"参考：検査", nm:"BNP 100 pg/mL 以上", lp:2.7, ln:0.11, cl:"lab", tag:"chk", note:"陰性（<100）のLR− 0.11 が有名な除外指標。一次文献未確認"}
+    ],
+    cases:[
+      {t:"68歳・喫煙者の呼吸困難", d:"事前40%。III音なし、頸静脈怒張なし、ラ音なし。", pre:0.40, set:{s3:-1, jvd:-1, crk:-1}},
+      {t:"82歳・夜間の呼吸困難で搬送", d:"事前45%。起坐呼吸、頸静脈怒張、III音あり。", pre:0.45, set:{ort:1, jvd:1, s3:1}}
+    ]
+  },
+  copd: {
+    name:"気流閉塞（COPD）", short:"気流閉塞",
+    pre: 0.25, tTest: 5, tTreat: 75,
+    ctx:"スパイロメトリー前の推定。診察の限界が最も露骨に出る領域で、だからこそ教材価値が高い。",
+    src:[
+      "Straus SE, et al. Diagnosis of obstructive airways disease from the clinical examination. J Gen Intern Med.（聴診上の喘鳴 LR+ 12 / LR− 0.87、患者申告の喘鳴 LR+ 3.1 / LR− 0.58）",
+      "Holleman DR Jr, Simel DL. Does the clinical examination predict airflow limitation? JAMA. 1995;273(4):313-9.",
+      "Straus SE, et al. The accuracy of patient history, wheezing, and laryngeal measurements in diagnosing obstructive airway disease. JAMA. 2000;283(14):1853-7."
+    ],
+    f:[
+      {id:"whz", cat:"聴診", nm:"聴診上の喘鳴", lp:12.0, ln:0.87, cl:"airway", tag:"src", note:"LR+ 12 / LR− 0.87。あれば強いが、無くても否定できない典型例"},
+      {id:"swz", cat:"問診", nm:"患者本人が申告する喘鳴", lp:3.1, ln:0.58, cl:"airway", tag:"src", note:"LR+ 3.1 / LR− 0.58"},
+      {id:"pk",  cat:"問診", nm:"喫煙 70 pack-years 超", lp:8.0, ln:0.63, cl:"expose", tag:"chk", note:"Straus 2000 として流通する値。一次文献未確認"},
+      {id:"fet", cat:"聴診", nm:"強制呼気時間 9秒超", lp:4.8, ln:0.45, cl:"airway", tag:"chk", note:"一次文献未確認"},
+      {id:"lar", cat:"触診", nm:"喉頭高（甲状軟骨〜胸骨切痕）4cm 以下", lp:2.8, ln:0.72, cl:"hyper", tag:"chk", note:"一次文献未確認"},
+      {id:"card",cat:"打診", nm:"心濁音界の消失", lp:3.6, ln:0.75, cl:"hyper", tag:"est", note:"進行例で有用とされる"}
+    ],
+    cases:[
+      {t:"63歳・47年間 2箱/日の喫煙者", d:"事前25%。喘鳴を自覚、聴診でも喘鳴。", pre:0.25, set:{pk:1, swz:1, whz:1}},
+      {t:"55歳・軽度の労作時息切れ", d:"事前15%。喘鳴なし、強制呼気時間 5秒。", pre:0.15, set:{whz:-1, swz:-1, fet:-1}}
+    ]
+  }
+};
+
+/* ----------------------------------------------------------------- state */
+let key = "cap";
+let panel = clone(DB[key].f);
+let st = {};            // id -> 1 | -1 | 0
+let pre = DB[key].pre, tTest = DB[key].tTest, tTreat = DB[key].tTreat, kap = .75;
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+const L = p => Math.log(p/(1-p));
+const IL = z => 1/(1+Math.exp(-z));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pct = p => p>0.999 ? ">99.9" : p<0.001 ? "<0.1" : p>=0.1 ? (p*100).toFixed(0) : (p*100).toFixed(1);
+
+function ss(f){ // recover sensitivity / specificity from LR pair
+  let lp=Math.max(f.lp,1.0001), ln=Math.min(Math.max(f.ln,0.0001),0.9999);
+  let spec = clamp((lp-1)/(lp-ln), 0.02, 0.999);
+  let sens = clamp(lp*(1-spec), 0.005, 0.999);
+  return {sens, spec};
+}
+function H(p){ p=clamp(p,1e-9,1-1e-9); return -(p*Math.log2(p)+(1-p)*Math.log2(1-p)); }
+
+/* applied findings -> ordered steps with correlation shrinkage */
+function steps(){
+  const on = panel.filter(f=>st[f.id]);
+  const w = {}; const out=[];
+  // strongest first within each cluster keeps the shrinkage honest
+  on.slice().sort((a,b)=>Math.abs(Math.log(st[b.id]>0?b.lp:b.ln))-Math.abs(Math.log(st[a.id]>0?a.lp:a.ln)))
+    .forEach(f=>{
+      const n = w[f.cl]||0; w[f.cl]=n+1;
+      const raw = st[f.id]>0 ? f.lp : f.ln;
+      out.push({f, dir:st[f.id], raw, eff: Math.exp(Math.log(raw)*Math.pow(kap,n)), damp:n>0});
+    });
+  return out;
+}
+function post(){ let z=L(pre); steps().forEach(s=>z+=Math.log(s.eff)); return IL(z); }
+function postNaive(){ let z=L(pre); steps().forEach(s=>z+=Math.log(s.raw)); return IL(z); }
+function zoneOf(p){ return p*100 < tTest ? 0 : (p*100 >= tTreat ? 2 : 1); }
+
+/* exhaustive reachability over untaken findings */
+function reach(){
+  const rest = panel.filter(f=>!st[f.id]);
+  const p0 = post();
+  const use = rest.slice(0, 14);
+  const bins = new Array(80).fill(0), zsum=[0,0,0];
+  let lo=1, hi=0, mass=0;
+  const n = use.length;
+  for(let m=0; m<(1<<n); m++){
+    let z=L(p0), pr=1, ok=true;
+    const w={};
+    for(let i=0;i<n;i++){
+      const f=use[i], plus=(m>>i)&1, {sens,spec}=ss(f);
+      const pf = p0*sens + (1-p0)*(1-spec);
+      pr *= plus ? pf : 1-pf;
+      if(pr < 1e-12){ ok=false; break; }
+      const k=w[f.cl]||0; w[f.cl]=k+1;
+      const raw = plus ? f.lp : f.ln;
+      z += Math.log(raw)*Math.pow(kap,k);
+    }
+    if(!ok) continue;
+    const p=IL(z); mass+=pr;
+    lo=Math.min(lo,p); hi=Math.max(hi,p);
+    zsum[zoneOf(p)] += pr;
+    bins[clamp(Math.floor((clamp(L(p),-7,7)+7)/14*80),0,79)] += pr;
+  }
+  if(mass>0){ for(let i=0;i<3;i++) zsum[i]/=mass; for(let i=0;i<80;i++) bins[i]/=mass; }
+  return {bins, zsum, lo, hi, n};
+}
+
+/* -------------------------------------------------------------- geometry */
+const X0=58, X1=958, YR=278;
+const xOf = p => X0 + (clamp(L(p),-7,7)+7)/14*(X1-X0);
+
+function drawTrack(){
+  const p=post(), pn=postNaive(), S=steps(), R=reach();
+  const s=[];
+  const zx = t => xOf(clamp(t/100,1e-4,.9999));
+  // zone bands
+  s.push(`<rect x="${X0}" y="${YR-64}" width="${zx(tTest)-X0}" height="72" fill="#2A5C8A" opacity=".055"/>`);
+  s.push(`<rect x="${zx(tTreat)}" y="${YR-64}" width="${X1-zx(tTreat)}" height="72" fill="#9C2A3B" opacity=".07"/>`);
+  // reachability cloud
+  const mx=Math.max(...R.bins,1e-9);
+  let d=`M ${X0} ${YR}`;
+  R.bins.forEach((v,i)=>{ const x=X0+(i+.5)/80*(X1-X0); d+=` L ${x.toFixed(1)} ${(YR-8-Math.sqrt(v/mx)*52).toFixed(1)}`; });
+  d+=` L ${X1} ${YR} Z`;
+  s.push(`<path d="${d}" fill="#2A5C8A" opacity=".16"/>`);
+  // ruler
+  s.push(`<line x1="${X0}" y1="${YR}" x2="${X1}" y2="${YR}" stroke="#14232C" stroke-width="1.4"/>`);
+  [0.1,0.5,1,2,5,10,20,30,50,70,80,90,95,99,99.9].forEach(t=>{
+    const x=zx(t);
+    s.push(`<line x1="${x}" y1="${YR}" x2="${x}" y2="${YR+6}" stroke="#7A8B94"/>`);
+    s.push(`<text x="${x}" y="${YR+18}" font-size="10" fill="#4A5C66" text-anchor="middle" class="m">${t}</text>`);
+  });
+  s.push(`<text x="${X0}" y="${YR+34}" font-size="10" fill="#7A8B94" class="m">← 除外</text>`);
+  s.push(`<text x="${X1}" y="${YR+34}" font-size="10" fill="#7A8B94" text-anchor="end" class="m">確定 →</text>`);
+  // thresholds
+  [[tTest,"検査閾値"],[tTreat,"治療閾値"]].forEach(([t,lb])=>{
+    const x=zx(t);
+    s.push(`<line x1="${x}" y1="20" x2="${x}" y2="${YR}" stroke="#A8791F" stroke-width="1" stroke-dasharray="3 4"/>`);
+    s.push(`<text x="${x+4}" y="30" font-size="10" fill="#A8791F" class="m">${lb} ${t}%</text>`);
+  });
+  // path
+  let y=44, x=xOf(pre);
+  s.push(`<circle cx="${x}" cy="${y}" r="4" fill="#14232C"/>`);
+  s.push(`<text x="${x}" y="${y-11}" font-size="11" fill="#14232C" text-anchor="middle" class="s">事前 ${pct(pre)}%</text>`);
+  let z=L(pre);
+  S.forEach(step=>{
+    z+=Math.log(step.eff); const nx=xOf(IL(z)), ny=y+26, up=nx>x;
+    const col = up? "#9C2A3B":"#2A5C8A";
+    s.push(`<path d="M ${x} ${y} L ${x} ${ny} L ${nx} ${ny}" fill="none" stroke="${col}" stroke-width="1.6"/>`);
+    const a = up? -1 : 1;
+    s.push(`<path d="M ${nx} ${ny} l ${a*7} -4 l 0 8 Z" fill="${col}"/>`);
+    const lx = (x+nx)/2, anch = Math.abs(nx-x)<70 ? (up?"start":"end") : "middle";
+    s.push(`<text x="${anch==="middle"?lx:(anch==="start"?nx+10:nx-10)}" y="${ny-6}" font-size="10.5" fill="${col}" text-anchor="${anch}">${esc(step.f.nm)}${step.dir>0?"（+）":"（−）"} ×${step.eff.toFixed(2)}${step.damp?" ⌁":""}</text>`);
+    x=nx; y=ny;
+  });
+  s.push(`<line x1="${x}" y1="${y}" x2="${x}" y2="${YR}" stroke="#14232C" stroke-width="1" stroke-dasharray="2 3"/>`);
+  s.push(`<circle cx="${x}" cy="${YR}" r="5.5" fill="#14232C"/>`);
+  if(S.length && Math.abs(pn-p)>0.005){
+    const xn=xOf(pn);
+    s.push(`<circle cx="${xn}" cy="${YR}" r="4" fill="none" stroke="#7A8B94" stroke-dasharray="2 2"/>`);
+    s.push(`<text x="${xn}" y="${YR-12}" font-size="9.5" fill="#7A8B94" text-anchor="middle" class="m">素朴 ${pct(pn)}%</text>`);
+  }
+  // big number
+  const bx = x> (X0+X1)/2 ? x-14 : x+14, ta = x>(X0+X1)/2 ? "end":"start";
+  s.push(`<text x="${bx}" y="${YR-26}" font-size="30" class="m" fill="#14232C" text-anchor="${ta}">${pct(p)}%</text>`);
+  s.push(`<text x="${bx}" y="${YR-12}" font-size="10" fill="#4A5C66" text-anchor="${ta}" class="m">POST-TEST</text>`);
+  document.getElementById("track").innerHTML = s.join("");
+}
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ----------------------------------------------------------------- views */
+const TAGS = {src:["b-src","出典"], der:["b-der","導出"], est:["b-est","推定"], chk:["b-chk","要確認"], own:["b-chk","自作"]};
+function badge(t){ const b=TAGS[t]||TAGS.est; return `<span class="badge ${b[0]}">${b[1]}</span>`; }
+
+function drawFindings(){
+  const byCat={}; panel.forEach(f=>{ (byCat[f.cat]=byCat[f.cat]||[]).push(f); });
+  let h="";
+  for(const c in byCat){
+    h+=`<div class="cat">${esc(c)}</div>`;
+    byCat[c].forEach(f=>{
+      const v=st[f.id]||0;
+      h+=`<div class="fnd"><div>
+        <div class="nm">${esc(f.nm)}</div>
+        <div class="meta">${badge(f.tag)}LR+ ${f.lp} ／ LR− ${f.ln}${f.ltag?" "+badge(f.ltag).replace('badge','badge')+"（LR−）":""}　<span style="opacity:.85">${esc(f.note||"")}</span></div>
+      </div>
+      <div class="tri" role="group" aria-label="${esc(f.nm)}">
+        <button class="pos" data-f="${f.id}" data-v="1"  aria-pressed="${v===1}">陽性</button>
+        <button class="neg" data-f="${f.id}" data-v="-1" aria-pressed="${v===-1}">陰性</button>
+        <button class="non" data-f="${f.id}" data-v="0"  aria-pressed="${v===0}">未実施</button>
+      </div></div>`;
+    });
+  }
+  document.getElementById("findings").innerHTML=h;
+  document.querySelectorAll(".tri button").forEach(b=>b.onclick=()=>{
+    st[b.dataset.f]= +b.dataset.v; render();
+  });
+}
+
+function drawRank(){
+  const p=post();
+  const rows = panel.filter(f=>!st[f.id]).map(f=>{
+    const {sens,spec}=ss(f);
+    const pp = p*sens + (1-p)*(1-spec);
+    const a = pp>1e-9 ? p*sens/pp : p;
+    const b = (1-pp)>1e-9 ? p*(1-sens)/(1-pp) : p;
+    const eig = H(p) - (pp*H(a) + (1-pp)*H(b));
+    const zc = (zoneOf(a)!==zoneOf(p) ? pp : 0) + (zoneOf(b)!==zoneOf(p) ? 1-pp : 0);
+    return {f, eig:Math.max(eig,0), a, b, pp, zc};
+  }).sort((x,y)=>y.eig-x.eig);
+  const mx = rows.length? Math.max(...rows.map(r=>r.eig), 1e-6) : 1;
+  document.getElementById("rank").innerHTML = rows.length ? rows.map(r=>`
+    <li><div class="hd"><span class="nm">${esc(r.f.nm)}</span><span class="bits">${r.eig.toFixed(3)} bit</span></div>
+      <div class="bar"><i style="width:${(r.eig/mx*100).toFixed(1)}%"></i></div>
+      <div class="br">陽性なら <span class="up">${pct(r.a)}%</span>（出る見込み ${(r.pp*100).toFixed(0)}%）／陰性なら <span class="dn">${pct(r.b)}%</span>${r.zc>0.02?`　▸ 判断が変わる確率 ${(r.zc*100).toFixed(0)}%`:""}</div>
+    </li>`).join("") : `<li class="note">すべての所見をとり終えた。診察からこれ以上引き出せる情報はない。</li>`;
+}
+
+function drawVerdict(){
+  const p=post(), R=reach(), z=zoneOf(p);
+  const V=["<b>除外域</b>：追加検査の閾値を下回った。ここで止めるのが合理的。",
+           "<b>グレーゾーン</b>：検査閾値と治療閾値の間。次の一手が最も価値をもつ領域。",
+           "<b>確定域</b>：治療閾値を超えた。確認検査を待たずに治療を始める判断が正当化されうる。"][z];
+  const reachable = R.zsum;
+  let more = "";
+  if(z===1){
+    if(reachable[2] < 0.03 && reachable[0] < 0.03)
+      more = "　残りの診察を全部やっても、閾値をまたぐ見込みはほぼない（合計 " + ((reachable[0]+reachable[2])*100).toFixed(0) + "%）。<b>ここは画像・検査に渡す局面</b>。";
+    else
+      more = "　残りの診察だけで決着がつく見込みは " + ((reachable[0]+reachable[2])*100).toFixed(0) + "%。まだ診察に価値がある。";
+  }
+  document.getElementById("verdict").innerHTML = `事後確率 <b style="font-family:var(--mono)">${pct(p)}%</b> — ${V}${more}`;
+  document.getElementById("zones").innerHTML =
+    [["除外域（<"+tTest+"%）",reachable[0]],["グレーゾーン",reachable[1]],["確定域（≧"+tTreat+"%）",reachable[2]]]
+    .map(([lb,v],i)=>`<div class="zone" style="${zoneOf(p)===i?'background:#EDF2F5':''}"><b style="color:${i===2?'var(--rise)':i===0?'var(--fall)':'var(--ink)'}">${(v*100).toFixed(0)}%</b><span>${lb}に着地</span></div>`).join("");
+  document.getElementById("reachNote").innerHTML =
+    R.n===0 ? "未実施の所見なし。" :
+    `未実施の ${R.n} 所見について 2<sup>${R.n}</sup>=${1<<R.n} 通りの結果をすべて列挙した結果、到達しうる確率は <code>${pct(R.lo)}% 〜 ${pct(R.hi)}%</code>。上の薄い雲がその分布で、面積は各確率に着地する見込みを表す。<b>雲が閾値線をまたがないなら、その診察は結論を変えない。</b>`;
+}
+
+function drawCases(){
+  document.getElementById("cases").innerHTML = DB[key].cases.map((c,i)=>
+    `<button class="case" data-c="${i}"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></button>`).join("");
+  document.querySelectorAll(".case").forEach(b=>b.onclick=()=>{
+    const c=DB[key].cases[+b.dataset.c];
+    st={}; Object.keys(c.set).forEach(k=>st[k]=c.set[k]);
+    pre=c.pre; document.getElementById("pre").value=L(pre); render();
+  });
+}
+
+function render(){
+  document.getElementById("preV").textContent=pct(pre)+"%";
+  document.getElementById("tTestV").textContent=tTest+"%";
+  document.getElementById("tTreatV").textContent=tTreat+"%";
+  document.getElementById("kapV").textContent=kap.toFixed(2);
+  drawFindings(); drawTrack(); drawRank(); drawVerdict();
+  if(typeof syncURL==="function") syncURL();
+}
+
+/* ------------------------------------------------------------------ wire */
+document.getElementById("tabs").innerHTML = Object.keys(DB).map(k=>
+  `<button data-k="${k}" aria-pressed="${k===key}">${DB[k].short}</button>`).join("");
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  key=b.dataset.k; panel=clone(DB[key].f); st={};
+  pre=DB[key].pre; tTest=DB[key].tTest; tTreat=DB[key].tTreat;
+  document.getElementById("pre").value=L(pre);
+  document.getElementById("tTest").value=tTest;
+  document.getElementById("tTreat").value=tTreat;
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</li>`).join("")
+    + `<li style="color:var(--ink-3)">状況設定：${esc(DB[key].ctx)}</li>`;
+  drawCases(); render();
+});
+document.getElementById("pre").oninput=e=>{ pre=clamp(IL(+e.target.value),1e-4,.999); render(); };
+document.getElementById("tTest").oninput=e=>{ tTest=+e.target.value; if(tTest>=tTreat){tTreat=tTest+1;document.getElementById("tTreat").value=tTreat;} render(); };
+document.getElementById("tTreat").oninput=e=>{ tTreat=+e.target.value; if(tTreat<=tTest){tTest=tTreat-1;document.getElementById("tTest").value=tTest;} render(); };
+document.getElementById("kap").oninput=e=>{ kap=+e.target.value; render(); };
+
+document.getElementById("eAdd").onclick=()=>{
+  const nm=document.getElementById("eName").value.trim();
+  const lp=parseFloat(document.getElementById("eLp").value), ln=parseFloat(document.getElementById("eLn").value);
+  if(!nm || !(lp>1) || !(ln>0 && ln<1)){ alert("所見名、LR+（1より大きい）、LR−（0〜1）を入れてください。"); return; }
+  panel.push({id:"u"+Date.now(), cat:document.getElementById("eCat").value.trim()||"自作",
+    nm, lp, ln, cl:document.getElementById("eCl").value.trim()||("u"+Date.now()), tag:"own", note:"自分で入力した値"});
+  ["eName","eCat","eLp","eLn","eCl"].forEach(i=>document.getElementById(i).value="");
+  render();
+};
+document.getElementById("eExport").onclick=()=>{
+  const blob=new Blob([JSON.stringify({disease:DB[key].name, pre, tTest, tTreat, kappa:kap, findings:panel, state:st},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`bayes-panel-${key}.json`; a.click(); URL.revokeObjectURL(a.href);
+};
+document.getElementById("eReset").onclick=()=>{ panel=clone(DB[key].f); st={}; render(); };
+
+/* ------------------------------------------------- shareable URL state */
+function encodeState(){
+  const on = Object.keys(st).filter(k=>st[k]).map(k=>k+":"+st[k]).join(",");
+  const custom = panel.filter(f=>f.tag==="own").map(f=>[f.nm,f.lp,f.ln,f.cl,f.cat]);
+  const q = ["d="+key, "p="+pre.toFixed(4), "t="+tTest, "r="+tTreat, "k="+kap];
+  if(on) q.push("f="+on);
+  if(custom.length) q.push("c="+encodeURIComponent(JSON.stringify(custom)));
+  return "#"+q.join("&");
+}
+function syncURL(){
+  try{ history.replaceState(null,"",encodeState()); }catch(e){}
+}
+function applyHash(){
+  const h=location.hash.replace(/^#/,""); if(!h) return false;
+  const q={}; h.split("&").forEach(kv=>{const i=kv.indexOf("="); if(i>0) q[kv.slice(0,i)]=kv.slice(i+1);});
+  if(q.d && DB[q.d]) key=q.d;
+  panel=clone(DB[key].f); st={};
+  pre=clamp(parseFloat(q.p)||DB[key].pre,1e-4,.999);
+  tTest=+q.t||DB[key].tTest; tTreat=+q.r||DB[key].tTreat; kap=+q.k||0.75;
+  if(q.c){ try{ JSON.parse(decodeURIComponent(q.c)).forEach((a,i)=>
+      panel.push({id:"u"+i, cat:a[4]||"自作", nm:a[0], lp:+a[1], ln:+a[2], cl:a[3]||("u"+i), tag:"own", note:"共有リンクに含まれる自作の値"})); }catch(e){} }
+  if(q.f) q.f.split(",").forEach(kv=>{const[a,b]=kv.split(":"); if(panel.some(f=>f.id===a)) st[a]=+b;});
+  return true;
+}
+function toast(msg){
+  let t=document.querySelector(".toast");
+  if(!t){ t=document.createElement("div"); t.className="toast"; document.body.appendChild(t); }
+  t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200);
+}
+document.getElementById("bShare").onclick=async()=>{
+  syncURL();
+  const url=location.href;
+  try{ await navigator.clipboard.writeText(url); toast("リンクをコピーしました。設定と所見がそのまま再現されます。"); }
+  catch(e){ prompt("このリンクをコピーしてください", url); }
+};
+document.getElementById("bPrint").onclick=()=>window.print();
+document.getElementById("bClear").onclick=()=>{ st={}; render(); };
+
+/* ------------------------------------------------------------ bootstrap */
+const fromHash = applyHash();
+if(fromHash){
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.k===key));
+  document.getElementById("kap").value=kap;
+}
+document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</li>`).join("")
+  + `<li style="color:var(--ink-3)">状況設定：${esc(DB[key].ctx)}</li>`;
+document.getElementById("pre").value=L(pre);
+document.getElementById("tTest").value=tTest;
+document.getElementById("tTreat").value=tTreat;
+drawCases(); render();
+addEventListener("hashchange",()=>{ if(applyHash()){ drawCases(); render(); } });
+
+/* offline use: register the service worker only where it is allowed */
+if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
+  try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){}
+}
+</script>
+</body>
+</html>
