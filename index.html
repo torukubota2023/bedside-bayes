@@ -217,7 +217,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.5.0</span>
+    <span class="ver" id="verLabel">v2.6.1</span>
   </div>
 </header>
 
@@ -438,7 +438,7 @@ const DB = {
       "Ebell MH, Chupp H, Cai X, Bentivegna M, Kearney M. Accuracy of Signs and Symptoms for the Diagnosis of Community-acquired Pneumonia: A Meta-analysis. Acad Emerg Med. 2020;27(7):541-553. PMID 32329557 / DOI 10.1111/acem.13965（17研究のメタ解析）",
       "Heckerling PS, Tape TG, Wigton RS, et al. Clinical prediction rule for pulmonary infiltrates. Ann Intern Med. 1990;113(9):664-670. PMID 2221647（5項目の予測ルール。導出1134例・検証302例、ROC 0.82）",
       "Metlay JP, Kapoor WN, Fine MJ. Does this patient have community-acquired pneumonia? JAMA. 1997;278(17):1440-5. PMID 9356004",
-      "McGee S. Evidence-Based Physical Diagnosis. 4th ed. EBM Box 29.1 / 29.2（胸郭拡張左右差・打診濁音。原著は Diehr P, et al. J Chronic Dis. 1984. PMID 6699126）"
+      "McGee S. McGee\u0027s Evidence-Based Physical Diagnosis. 6th ed. EBM Box 29.1 / 29.2 / 32.1（胸郭拡張左右差・打診濁音。原著は Diehr P, et al. J Chronic Dis. 1984. PMID 6699126）"
     ],
     f:[
       {id:"gest", cat:"総合判断", nm:"総合的な臨床印象で肺炎を疑う", lp:7.7, ln:0.54,
@@ -447,22 +447,22 @@ const DB = {
       {id:"vital",cat:"バイタル", nm:"バイタル異常（呼吸数・脈拍・体温・SpO₂ のいずれか）", lp:1.3, ln:0.25,
        cin:[0.11,0.48], cl:"impression", tag:"der",
        note:"LR− 0.25 (0.11–0.48) が Ebell 2020 の報告値。感度93%から LR+ を導出。すべて正常なら肺炎は考えにくい"},
-      {id:"fev",  cat:"バイタル", nm:"実測体温の上昇（37.8℃ 超）", lp:2.52, ln:1.0,
-       ci:[2.02,3.20], ss:[0.378,0.85], cl:"impression", tag:"src",
-       note:"LR+ 2.52 (2.02–3.20)。Heckerling の5項目①と同じ閾値。Ebell 2020 は LR− を報告していないが、McGee EBM Box 32.1 が同じ所見に感度16–75%・特異度44–95%（LR− 0.7）を与えている。bit の計算には、その範囲の中で LR+ 2.52 と整合する組（感度38%・特異度85%）を使う。この組から出る LR− は 0.73 で McGee の 0.7 とほぼ一致する"},
+      {id:"fev",  cat:"バイタル", nm:"実測体温の上昇（37.8℃ 超）", lp:2.5, ln:0.7,
+       ci:[2.0,3.1], cin:[0.6,0.8], ss:[0.375,0.85], cl:"impression", tag:"src",
+       note:"McGee EBM Box 32.1 / Appendix Table 71.1：12,000例超の統合で LR+ 2.5 (2.0–3.1)／LR− 0.7 (0.6–0.8)、感度16–75%・特異度44–95%。Heckerling の5項目①と同じ閾値。以前は Ebell 2020 の 2.52 を採り陰性側を「報告なし」としていたが、McGee は陰性尤度比を有意な値として報告しており、区間も 1 を含まない。熱が無いことは、弱いながら肺炎を否定する方向に働く"},
       {id:"crk",  cat:"聴診", nm:"クラックル（ラ音・水泡音・捻髪音）", lp:2.00, ln:0.80,
        ci:[1.54,2.58], cl:"impression", tag:"src", ltag:"chk",
        note:"統合LR+ 2.00 (1.54–2.58)。1.5–2.6 は値の範囲ではなく信頼区間。弱いが最も高感度で再現性がよい「気づく入口」。LR− はガイド記載 0.6–0.9 の幅があり未確定"},
       {id:"ego",  cat:"聴診", nm:"ヤギ音（エゴフォニー / E-to-A）", lp:6.17, ln:0.96,
        ci:[1.34,18.0], cl:"consol", tag:"src", ltag:"chk",
        note:"LR+ 6.17 (1.34–18.0)。信頼区間が極めて広い。病態非特異（実質化でも圧迫肺でも出る）で、無くても除外にならない"},
-      {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.5, ln:0.90, cl:"consol", tag:"chk",
-       note:"Metlay 由来 3.5 と Heckerling 1990 由来 3.3 の2系統が流通しており未決着。ガイドは 3.5 を採用。機関アクセスでの確認待ち"},
+      {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.3, ln:0.9, ci:[2.3,4.8], cin:[0.8,0.9], ss:[0.165,0.95], cl:"consol", tag:"src",
+       note:"McGee EBM Box 30.1 / 32.1：感度14–19%・特異度94–96%、LR+ 3.3 (2.3–4.8)／LR− 0.9 (0.8–0.9)。以前は 3.5 を採っていたが、ガイド表t22 が併記していた感度8–63%・特異度64–96% は一次資料に無く、その組からは 3.5 が出てこない。二次資料で確認できる 3.3 に揃えた"},
       {id:"dull", cat:"打診", nm:"限局した打診濁音", lp:2.62, ln:1.0,
        ci:[1.14,5.30], ss:[0.183,0.93], cl:"consol", tag:"src",
        note:"LR+ 2.62 (1.14–5.30、Ebell 2020)。McGee は肺炎の打診濁音の LR− を「有意でない」としているため、陰性側は無情報のままにした。bit の計算には McGee EBM Box 32.1 の感度4–26%・特異度82–99% の範囲から、LR+ 2.62 と整合する組（感度18%・特異度93%）を使う。同じ打診濁音でも胸水を狙えば 4.8 になる — 所見の重みは標的病態で変わる"},
       {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差（患側が動かない）", lp:44.1, ln:1.0,
-       ci:[5.3,256], ciNote:"概算・出典なし", ss:[0.05,0.9989], cl:"expand", tag:"chk",
+       ci:[2.1,905], cin:[0.9,1.0], ss:[0.05,0.9989], cl:"expand", tag:"src",
        note:"McGee EBM Box 29.1。原著 Diehr 1984 は全1819例中 肺炎48例で、感度5%・特異度100%。LR+ はごく少数例（肺炎約2例 対 非肺炎約2例）で決まっており極めて不安定。McGee も LR− は「有意でない」としている。陽性は強いが陰性は無情報という非対称の典型"}
     ],
     heckerling:{
@@ -488,26 +488,26 @@ const DB = {
     ],
     f:[
       {id:"ap",   cat:"打診", nm:"聴診打診法（胸骨を叩き背部で聴取）の濁音", lp:8.3, ln:1.0,
-       ss:[0.83,0.90], cl:"fluid", tag:"src",
-       note:"McGee EBM Box 29.2 / 35.1：感度58–96%・特異度85–95%、LR+ 8.3。研究間のばらつきが大きく LR− は有意にならなかった。bit の計算には、報告された範囲の中で LR+ 8.3 と整合する組（感度83%・特異度90%）を使っている。同じ手技でも「胸部X線異常全般」を狙うと陽性・陰性とも有意でなくなる"},
+       ci:[1.8,38.7], ss:[0.83,0.90], cl:"fluid", tag:"src",
+       note:"McGee EBM Box 29.2 / 35.1：感度58–96%・特異度85–95%、LR+ 8.3 (1.8–38.7)。区間の下限が 1.8 まで下がる。陰性側は点推定 0.2 だが区間が (0–1.6) と 1 をまたぐため、McGee は有意でないとしている。bit の計算には、報告された範囲の中で LR+ 8.3 と整合する組（感度83%・特異度90%）を使っている。同じ手技でも「胸部X線異常全般」を狙うと陽性・陰性とも有意でなくなる"},
       {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
-       ci:[5.2,12.7], ss:[0.74,0.91], cl:"expand", tag:"src",
-       note:"Kalantri の感度74%・特異度91%。多変量でも独立の予測因子（OR 5.22）。同じ手技でも肺炎を狙うと感度5%まで落ちる — 所見の性能は標的病態で決まる"},
+       ci:[5.2,12.7], cin:[0.2,0.4], ss:[0.74,0.91], cl:"expand", tag:"src",
+       note:"Kalantri の感度74%・特異度91%、LR+ 8.1 (5.2–12.7)／LR− 0.3 (0.2–0.4)。多変量でも独立の予測因子（OR 5.22）。同じ手技でも肺炎を狙うと感度5%まで落ちる — 所見の性能は標的病態で決まる"},
       {id:"voc",  cat:"聴診", nm:"声音共鳴の低下（数を数えさせて背部で聴取）", lp:6.5, ln:0.3,
-       ss:[0.76,0.88], cl:"fluid", tag:"src",
+       ci:[4.4,9.6], cin:[0.2,0.4], ss:[0.76,0.88], cl:"fluid", tag:"src",
        note:"McGee EBM Box 30.1 / 35.1（Kalantri 感度76%・特異度88%）。声が伝わらなくなる側の所見。同じ胸水でもヤギ音のように異常に響く患者と、この聞こえなくなる患者がいて、どちらが出るかは液体量と圧縮された肺の状態で変わる"},
       {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.2,
-       ss:[0.82,0.86], cl:"fluid", tag:"src",
+       ci:[4.0,8.0], cin:[0.1,0.4], ss:[0.82,0.86], cl:"fluid", tag:"src",
        note:"Kalantri 感度82%・特異度86%。除外に使える数少ない所見。なお Wong 2009 の統合値も LR− 0.21 (0.12–0.37) とほぼ同じ位置に来る"},
       {id:"bs",   cat:"聴診", nm:"呼吸音の減弱・消失", lp:5.2, ln:0.1,
-       ss:[0.88,0.83], cl:"fluid", tag:"src",
+       ci:[3.8,7.1], cin:[0.1,0.3], ss:[0.88,0.83], cl:"fluid", tag:"src",
        note:"Kalantri 感度88%・特異度83%。以前このアプリは感度57%・特異度86%（LR+ 4.1）と書いていたが、原著にその組は無く誤りだった。ガイド表t22 も同じ誤りを持っており、あわせて訂正する"},
       {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:4.8, ln:0.1,
-       ss:[0.89,0.81], cl:"fluid", tag:"src",
+       ci:[3.6,6.4], cin:[0.1,0.3], ss:[0.89,0.81], cl:"fluid", tag:"src",
        note:"Kalantri 感度89%・特異度81%。以前は Wong 2009 の統合値 8.7 を使っていたが、他の所見が Kalantri である以上、掛け合わせる相手として出所が揃わない。感度と特異度が逆に書かれていた（81/89）誤りもここで直した"},
-      {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:5.0, ln:1.0,
-       ss:[0.05,0.99], nsg:1, cl:"pleura", tag:"src",
-       note:"McGee は EBM Box 35.1 と 30.3 の二箇所で、この所見の尤度比を「有意でない」と判定している。感度5%・特異度99%から素直に計算すれば 5.0 前後になるが、278例中で陽性は数例しかなく、区間が1をまたぐ。特異度が高いだけでは使える所見にならない、という例として残してある"}
+      {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:3.9, ln:1.0,
+       ci:[0.8,18.7], cin:[0.9,1.0], ss:[0.05,0.99], nsg:1, cl:"pleura", tag:"src",
+       note:"LR+ 3.9 だが 95%信頼区間は 0.8–18.7 で、下限が 1 を割っている（McGee Appendix Table 71.1）。だから EBM Box 35.1 でも 30.3 でも「有意でない」と印字されている。感度5%・特異度99%、278例中の陽性はごく少数。特異度が高いだけでは使える所見にならないという例として、確率を動かさない扱いで残してある"}
     ],
     cases:[
       {t:"64歳・労作時呼吸困難／外来", d:"事前20%。振盪低下なし、拡張左右差なし。", pre:0.20, set:{fre:-1, exp:-1}},
@@ -567,7 +567,7 @@ const DB = {
        note:"原著は LR 2.7 (1.7–4.2)、かつ多変量モデルでは有意にならなかったと明記し、「喘鳴のような個別の徴候への依存を減らすべき」と結論している。喘鳴は気流閉塞の確定ではなく、鑑別の入口として使う"},
       {id:"pk",  cat:"問診", nm:"喫煙 40 pack-years 超", lp:8.3, ln:1.0, cl:"expose", tag:"src",
        note:"Straus 2000 の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。感度・特異度が公表されていないため、この所見だけは bit を計算できない。Oshaug 2013 は同じ40 pack-years に感度19%・特異度95%・LR 4.1 (2.0–8.2) を報告しているが、対象が「すでに喘息か COPD と診断されている患者」で母集団が違うので、数値を借りてこない"},
-      {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:3.6, ln:0.7, ss:[0.36,0.90], cl:"hyper", tag:"src",
+      {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:3.6, ln:0.7, ci:[2.1,6.0], cin:[0.6,0.8], ss:[0.36,0.90], cl:"hyper", tag:"src",
        note:"Straus 2000 の感度36%・特異度90%（McGee EBM Box 33.1 経由）。同じ論文の多変量モデルからは LR 2.8 が報告されているが、このアプリは所見を掛け合わせたうえで κ による相関補正を別途かけるので、調整前の素の尤度比を使うほうが整合する。喉頭下降度（laryngeal descent）は別の指標で、そちらは LR 0.9–1.2 と役に立たない。混同しない"},
       {id:"hyp", cat:"打診", nm:"過共鳴", lp:9.5, ln:0.8, cl:"hyper", tag:"src",
        ci:[3.7,23.7], ss:[0.208,0.978],
@@ -656,7 +656,8 @@ function steps(){
 function postCI(){
   const S=steps(); let zl=L(pre), zh=L(pre), unknown=0;
   S.forEach(s=>{
-    const iv = s.dir>0 ? s.f.ci : s.f.cin;
+    // 有意でないと判定した所見は確率を動かさないので、区間も広げてはいけない
+    const iv = s.f.nsg ? [1,1] : (s.dir>0 ? s.f.ci : s.f.cin);
     if(!iv) unknown++;
     const lo = iv? iv[0] : s.raw, hi = iv? iv[1] : s.raw;
     const k = Math.pow(kap, s.n);
@@ -857,10 +858,17 @@ function drawRank(){
     /* すでに同じ機序を測っていれば、その所見の実効LRは減衰している。
        減衰前のLRで情報利得を出すと、相関する所見を「次の一手」の上位に押し上げてしまう。 */
     const f = shrink(f0, used[f0.cl]||0);
-    const {sens,spec}=ss(f);
-    const pp = p*sens + (1-p)*(1-spec);
-    const a = pp>1e-9 ? p*sens/pp : p;
-    const b = (1-pp)>1e-9 ? p*(1-sens)/(1-pp) : p;
+    /* 陽性が出る「頻度」は、減衰していない元の感度・特異度から出す。
+       すでに相関所見を取っていても、この所見が陽性になる確率そのものは変わらない。 */
+    const {sens,spec}=ss(f0);
+    const pp = clamp(p*sens + (1-p)*(1-spec), 1e-9, 1-1e-9);
+    /* 事後確率は、このアプリが実際に掛ける尤度比から出す。
+       ここを感度・特異度からのベイズ更新で計算すると、陰性尤度比が未報告（1.0）の所見で
+       「陰性なら4.5%」と予告しておきながら、実際に陰性を押すと確率が動かない、という
+       食い違いが起きる。予告と挙動は同じ数から出さなければならない。 */
+    const z0 = L(p);
+    const a = IL(z0 + Math.log(lrOf(f,true)));
+    const b = IL(z0 + Math.log(lrOf(f,false)));
     const eig = H(p) - (pp*H(a) + (1-pp)*H(b));
     const zc = (zoneOf(a)!==zoneOf(p) ? pp : 0) + (zoneOf(b)!==zoneOf(p) ? 1-pp : 0);
     const nd = used[f0.cl]||0;
