@@ -1,10 +1,11 @@
 /* ベイズ診察エンジン — offline shell
    ネットワーク優先・キャッシュ予備。更新は次回起動時に反映される。 */
-const VERSION = "v1.0.0";
+const VERSION = "v2.0.0";
 const CACHE = "bayes-" + VERSION;
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
-  "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"
+  "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png",
+  "./icons/apple-touch-icon.png", "./icons/ogp.png"
 ];
 
 self.addEventListener("install", e => {
