@@ -109,6 +109,11 @@ svg{display:block;width:100%;height:auto}
 .eigt td:last-child{font-family:var(--mono)}
 .eigcmp{background:#F7F9FA;border-left:3px solid var(--rule);padding:7px 11px;margin:8px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
 .eigwarn{color:var(--flag)}
+.eigh{font-size:12.5px;color:var(--ink);margin:14px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--rule-2);font-weight:700}
+.eigh:first-of-type{margin-top:10px}
+.eigsvg{width:100%;max-width:520px;height:auto;display:block;margin:8px 0 2px}
+.eigcap{font-size:11.5px;color:var(--ink-3);margin:0 0 8px}
+.eigt i,.eig i{font-style:italic}
 /* 機序ごとの読み方。「確率は動かないが確信は上がる」を、オッズとは別の軸として見せる。 */
 .mech{margin-top:10px;border:1px solid var(--rule);background:#FBFCFD}
 .mech .mh{padding:8px 12px;border-bottom:1px solid var(--rule-2);background:#F4F7F9;font-size:12.5px;color:var(--ink)}
@@ -204,7 +209,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.2.0</span>
+    <span class="ver" id="verLabel">v2.3.0</span>
   </div>
 </header>
 
@@ -268,34 +273,94 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
     <div class="note" style="margin-bottom:8px"><b>次にどの診察をすれば、いちばん迷いが減るか</b>の順番です。<br>やる前は陽性か陰性か分かりません。そこで<b>陽性だった場合と陰性だった場合の両方を、それぞれの起こりやすさで重みづけして平均</b>し、確率がどれだけ動きそうかを1つの数にしています（単位 bit）。「期待」が付くのはこのためです。<br><b>1 bit ＝ 五分五分の迷いが、ひとつ完全に解ける</b>だけの情報量。0.1 bit を切ると、確率はほとんど動きません。<br>ただし<b>「確率が動かない」ことと「判断が変わらない」ことは別</b>です。閾値のすぐ近くにいれば、わずかな動きでも除外域・確定域に入ります。そのため各行には <b>「判断が変わる確率」</b> を併記しています ── <b>実務ではこちらが決め手になることが多い</b>ので、bit が小さくてもこの数字が大きい所見は見逃さないでください。</div>
     <details class="eig">
-      <summary>bit とは何か ── やさしい解説</summary>
+      <summary>bit とは何か ── LR とオッズは知っているが bit は初めて、という方へ</summary>
       <div class="note" style="margin-top:8px">
-        <p><b>bit は「迷いの大きさ」を測る単位です。</b>
-        確率が 50% のとき、あなたは最大限に迷っています。この五分五分の迷いを <b>1 bit</b> と決めます。
+
+        <p><b>まず、すでにご存じのものから。</b>
+        尤度比（LR）は「その所見が<b>確率をどれだけ動かすか</b>」を表します。これは<b>所見の性質</b>で、患者によりません。<br>
+        bit はその次の話で、「その動きによって、<b>この患者についての迷いがどれだけ晴れたか</b>」を表します。
+        こちらは<b>患者によって変わります</b>。同じ所見でも、誰に使うかで価値が違うからです。</p>
+
+        <h4 class="eigh">1. 「迷いの大きさ」を数で表す</h4>
+        <p>確率が 50% のとき、あなたは最大限に迷っています。この五分五分の迷いを <b>1 bit</b> と決めます。
         0% か 100% に振り切れていれば、迷いは <b>0 bit</b> ── もう迷っていません。</p>
+
+        <svg viewBox="0 0 520 150" class="eigsvg" role="img" aria-label="確率と迷いの大きさの関係">
+          <line x1="44" y1="124" x2="506" y2="124" stroke="#14232C" stroke-width="1.2"/>
+          <line x1="44" y1="12" x2="44" y2="124" stroke="#14232C" stroke-width="1.2"/>
+          <line x1="44" y1="68" x2="506" y2="68" stroke="#DDE4E8" stroke-dasharray="3 3"/>
+          <line x1="275" y1="12" x2="275" y2="124" stroke="#DDE4E8" stroke-dasharray="3 3"/>
+          <text x="38" y="127" font-size="9" fill="#61717A" text-anchor="end">0</text>
+          <text x="38" y="71" font-size="9" fill="#61717A" text-anchor="end">0.5</text>
+          <text x="38" y="16" font-size="9" fill="#61717A" text-anchor="end">1.0</text>
+          <text x="10" y="72" font-size="9" fill="#4A5C66" transform="rotate(-90 10 72)" text-anchor="middle">迷い（bit）</text>
+          <text x="44" y="137" font-size="9" fill="#61717A" text-anchor="middle">0%</text>
+          <text x="275" y="137" font-size="9" fill="#61717A" text-anchor="middle">50%</text>
+          <text x="506" y="137" font-size="9" fill="#61717A" text-anchor="middle">100%</text>
+          <text x="275" y="148" font-size="9" fill="#4A5C66" text-anchor="middle">いまの確率</text>
+          <polyline points="44.0,124.0 53.2,108.2 62.5,96.9 71.7,87.3 81.0,79.0 90.2,71.5 99.4,64.7 108.7,58.6 117.9,53.0 127.2,47.8 136.4,43.1 145.6,38.9 154.9,35.0 164.1,31.4 173.4,28.2 182.6,25.3 191.8,22.7 201.1,20.4 210.3,18.4 219.6,16.7 228.8,15.3 238.0,14.1 247.3,13.2 256.5,12.5 265.8,12.1 275.0,12.0 284.2,12.1 293.5,12.5 302.7,13.2 312.0,14.1 321.2,15.3 330.4,16.7 339.7,18.4 348.9,20.4 358.2,22.7 367.4,25.3 376.6,28.2 385.9,31.4 395.1,35.0 404.4,38.9 413.6,43.1 422.8,47.8 432.1,53.0 441.3,58.6 450.6,64.7 459.8,71.5 469.0,79.0 478.3,87.3 487.5,96.9 496.8,108.2 506.0,124.0" fill="none" stroke="#2A5C8A" stroke-width="2"/>
+          <circle cx="275" cy="12" r="3.5" fill="#9C2A3B"/>
+          <text x="275" y="8" font-size="9.5" fill="#9C2A3B" text-anchor="middle">迷いが最大（1 bit）</text>
+          <circle cx="67" cy="92" r="3" fill="#14232C"/><text x="72" y="90" font-size="9" fill="#4A5C66">5% → 0.29</text>
+          <circle cx="183" cy="25" r="3" fill="#14232C"/><text x="188" y="23" font-size="9" fill="#4A5C66">30% → 0.88</text>
+          <circle cx="414" cy="43" r="3" fill="#14232C"/><text x="409" y="41" font-size="9" fill="#4A5C66" text-anchor="end">80% → 0.72</text>
+        </svg>
+        <p class="eigcap">診察をすると、患者はこの曲線の上を左右に動きます。<b>動いた先で山がどれだけ低くなったか</b>が、その診察で得られた情報です。</p>
+
+        <h4 class="eigh">2. なぜ「期待」が付くのか</h4>
+        <p>やる前は、陽性になるか陰性になるか分かりません。だから
+        「陽性だった場合に減る迷い」と「陰性だった場合に減る迷い」を、
+        <b>それぞれの起こりやすさで重みづけして平均</b>します。この平均が「<b>期待</b>情報利得」です。</p>
+        <p>Benish はこれを、<b>「最終的に診断を知ったときの<i>驚き</i>を、検査が平均してどれだけ減らすか」</b>と言い換えています（Methods Inf Med 2009; PMID 19562229）。</p>
+
+        <h4 class="eigh">3. ここが本題 ── LR が大きい所見が、価値が高いとは限らない</h4>
+        <p>肺炎を 30% 疑っている患者に、4つの所見をそれぞれ取ったとします。</p>
         <table class="eigt">
-          <tr><th>いまの確率</th><th>迷いの大きさ</th></tr>
-          <tr><td>50%</td><td>1.00 bit（最大）</td></tr>
-          <tr><td>70% または 30%</td><td>0.88 bit</td></tr>
-          <tr><td>90% または 10%</td><td>0.47 bit</td></tr>
-          <tr><td>95% または 5%</td><td>0.29 bit</td></tr>
-          <tr><td>99% または 1%</td><td>0.08 bit</td></tr>
+          <tr><th>所見</th><th>LR+</th><th>LR−</th><th>期待情報利得</th></tr>
+          <tr><td>ヤギ音</td><td>6.17</td><td>0.96</td><td>0.011 bit</td></tr>
+          <tr><td>クラックル</td><td>2.00</td><td>0.80</td><td>0.024 bit</td></tr>
+          <tr><td>打診濁音（肺炎）</td><td>2.62</td><td>―</td><td>0.000 bit</td></tr>
+          <tr><td><b>バイタル異常</b></td><td><b>1.30</b></td><td><b>0.25</b></td><td><b>0.047 bit</b></td></tr>
         </table>
-        <p><b>診察をすると、この迷いが減ります。減った分が「情報利得」です。</b>
-        ただし、やる前は陽性か陰性か分かりません。そこで「陽性だった場合に減る迷い」と
-        「陰性だった場合に減る迷い」を、それぞれの起こりやすさで重みづけして平均します。
-        これが「<b>期待</b>情報利得」の「期待」です。</p>
-        <p><b>なぜ「確率が何ポイント動くか」ではなく bit なのか。</b>
-        同じ10ポイントの動きでも、いまいる場所によって意味がまるで違うからです。</p>
+        <p><b>LR+ が最も大きいヤギ音が、最も価値が低い。LR+ 1.30 のバイタル異常が、その4倍の情報をもたらします。</b></p>
+        <p>理由は感度です。ヤギ音の感度は約5%。<b>98% の確率で「陰性」になり</b>、その陰性は LR− 0.96 ＝ ほとんど確率を動かしません。
+        つまり「たまに出れば強いが、ほとんど出ない」所見です。平均すれば、得られる情報はわずかになります。<br>
+        逆にバイタル異常は LR+ こそ小さいものの、<b>陰性に意味があり（LR− 0.25）、しかも高い頻度で決着がつく</b>。だから平均では勝ちます。<br>
+        打診濁音が 0.000 bit なのは、LR− が報告されていない（＝陰性から何も学べない）ためです。</p>
+
+        <h4 class="eigh">4. 同じ所見でも、患者によって価値が変わる</h4>
+        <p>同じヤギ音を、事前確率の違う3人に使ってみます。</p>
+        <table class="eigt">
+          <tr><th>事前確率</th><th>陽性なら</th><th>陰性なら</th><th>期待情報利得</th></tr>
+          <tr><td>5%</td><td>24.5%</td><td>4.8%</td><td>0.003 bit</td></tr>
+          <tr><td><b>30%</b></td><td>72.6%</td><td>29.1%</td><td><b>0.011 bit</b></td></tr>
+          <tr><td>80%</td><td>96.1%</td><td>79.3%</td><td>0.007 bit</td></tr>
+        </table>
+        <p><b>同じ所見・同じ尤度比なのに、得られる情報は3倍以上違います。</b>
+        迷っている患者（50%に近い）ほど、同じ診察から多くを得られる。ほぼ決まっている患者に同じ所見を取っても、ほとんど何も増えません。</p>
+        <p>感度・特異度や ROC 曲線下面積（AUC）は<b>事前確率に依存しない指標</b>なので、この違いを表せません。
+        Benish は <b>「AUC は診断情報の尺度ではない」</b>と明言しています（Methods Inf Med 2003; PMID 12874659）。
+        <b>「この所見はよい所見か」ではなく「この患者にいまこの所見を取る価値があるか」</b>を問うなら、bit が要ります。</p>
+
+        <h4 class="eigh">5. なぜパーセントではなく bit なのか</h4>
+        <p>同じ「10ポイントの動き」でも、いまいる場所で意味がまるで違うからです。</p>
         <div class="eigcmp">50% → 60% ： 迷い 1.000 → 0.971　＝ <b>0.03 bit</b> しか減らない<br>
         89% → 99% ： 迷い 0.500 → 0.081　＝ <b>0.42 bit</b> 減る</div>
-        <p>どちらも同じ「10ポイント」ですが、迷いの減り方は <b>14倍</b> 違います。
-        パーセントの差では、この違いを取り違えます。bit はこれを正しく扱う単位です。</p>
-        <p><b>数字の感覚。</b>
-        0.5 bit 以上なら大きく動く。0.1〜0.3 bit ならそれなりに動く。0.05 bit を切ると確率はほとんど動きません。</p>
+        <p>どちらも10ポイントですが、迷いの減り方は <b>14倍</b> 違います。パーセントの差では、この違いを取り違えます。</p>
+
+        <h4 class="eigh">6. 数字の感覚</h4>
+        <p>0.5 bit 以上なら大きく動く。0.1〜0.3 bit ならそれなり。0.05 bit を切ると確率はほとんど動きません。</p>
         <p class="eigwarn">⚠️ <b>ただし bit が小さいからといって切り捨てないでください。</b>
         閾値のすぐそばにいるときは、わずかな動きでも除外域・確定域に入ります。
         各行の「判断が変わる確率」を必ず併せて見てください。</p>
+
+        <h4 class="eigh">出典と位置づけ</h4>
+        <p>情報理論を診断検査に応用する考え方は、William A. Benish による一連の仕事として確立しています
+        ── 相対エントロピー（1999, PMID 10231083）、情報グラフ（2002, PMID 12061117）、
+        相互情報量（2003, PMID 12874659）、直観的・公理的な導出（2009, PMID 19562229）、
+        そして総説（<i>Entropy</i> 2020, PMID 33285872, PMC7516534, オープンアクセス）。<br>
+        ただしこれらは医療情報学の文献であり、<b>ベッドサイドの身体診察の教科書（McGee・Bates・Sapira）は尤度比までで、bit は使っていません</b>。
+        身体診察の一手ごとの価値を bit で順位づけして提示する試みは、少なくとも一般的ではありません。</p>
       </div>
     </details>
     <ul class="rank" id="rank"></ul>
