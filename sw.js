@@ -1,6 +1,6 @@
 /* ベイズ診察エンジン — offline shell
    ネットワーク優先・キャッシュ予備。更新は次回起動時に反映される。 */
-const VERSION = "v2.5.0";
+const VERSION = "v2.6.0";
 const CACHE = "bayes-" + VERSION;
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
