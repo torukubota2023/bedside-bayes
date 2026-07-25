@@ -100,6 +100,15 @@ svg{display:block;width:100%;height:auto}
 .rank .br{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
 .rank .br .up{color:var(--rise)} .rank .br .dn{color:var(--fall)}
 .dampnote{font-size:11px;color:var(--flag);margin-top:3px;line-height:1.5}
+/* bit のやさしい解説。数字の隣で読めないと、単位の意味は伝わらない。 */
+.eig .note p{margin:0 0 8px}
+.eig .note p:last-child{margin-bottom:0}
+.eigt{border-collapse:collapse;margin:8px 0;font-size:12px}
+.eigt th,.eigt td{border:1px solid var(--rule-2);padding:4px 11px;text-align:left}
+.eigt th{background:#F1F5F7;color:var(--ink);font-weight:700}
+.eigt td:last-child{font-family:var(--mono)}
+.eigcmp{background:#F7F9FA;border-left:3px solid var(--rule);padding:7px 11px;margin:8px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
+.eigwarn{color:var(--flag)}
 /* 機序ごとの読み方。「確率は動かないが確信は上がる」を、オッズとは別の軸として見せる。 */
 .mech{margin-top:10px;border:1px solid var(--rule);background:#FBFCFD}
 .mech .mh{padding:8px 12px;border-bottom:1px solid var(--rule-2);background:#F4F7F9;font-size:12.5px;color:var(--ink)}
@@ -195,7 +204,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.1.2</span>
+    <span class="ver" id="verLabel">v2.2.0</span>
   </div>
 </header>
 
@@ -258,6 +267,37 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
   <section class="panel">
     <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
     <div class="note" style="margin-bottom:8px"><b>次にどの診察をすれば、いちばん迷いが減るか</b>の順番です。<br>やる前は陽性か陰性か分かりません。そこで<b>陽性だった場合と陰性だった場合の両方を、それぞれの起こりやすさで重みづけして平均</b>し、確率がどれだけ動きそうかを1つの数にしています（単位 bit）。「期待」が付くのはこのためです。<br><b>1 bit ＝ 五分五分の迷いが、ひとつ完全に解ける</b>だけの情報量。0.1 bit を切ると、確率はほとんど動きません。<br>ただし<b>「確率が動かない」ことと「判断が変わらない」ことは別</b>です。閾値のすぐ近くにいれば、わずかな動きでも除外域・確定域に入ります。そのため各行には <b>「判断が変わる確率」</b> を併記しています ── <b>実務ではこちらが決め手になることが多い</b>ので、bit が小さくてもこの数字が大きい所見は見逃さないでください。</div>
+    <details class="eig">
+      <summary>bit とは何か ── やさしい解説</summary>
+      <div class="note" style="margin-top:8px">
+        <p><b>bit は「迷いの大きさ」を測る単位です。</b>
+        確率が 50% のとき、あなたは最大限に迷っています。この五分五分の迷いを <b>1 bit</b> と決めます。
+        0% か 100% に振り切れていれば、迷いは <b>0 bit</b> ── もう迷っていません。</p>
+        <table class="eigt">
+          <tr><th>いまの確率</th><th>迷いの大きさ</th></tr>
+          <tr><td>50%</td><td>1.00 bit（最大）</td></tr>
+          <tr><td>70% または 30%</td><td>0.88 bit</td></tr>
+          <tr><td>90% または 10%</td><td>0.47 bit</td></tr>
+          <tr><td>95% または 5%</td><td>0.29 bit</td></tr>
+          <tr><td>99% または 1%</td><td>0.08 bit</td></tr>
+        </table>
+        <p><b>診察をすると、この迷いが減ります。減った分が「情報利得」です。</b>
+        ただし、やる前は陽性か陰性か分かりません。そこで「陽性だった場合に減る迷い」と
+        「陰性だった場合に減る迷い」を、それぞれの起こりやすさで重みづけして平均します。
+        これが「<b>期待</b>情報利得」の「期待」です。</p>
+        <p><b>なぜ「確率が何ポイント動くか」ではなく bit なのか。</b>
+        同じ10ポイントの動きでも、いまいる場所によって意味がまるで違うからです。</p>
+        <div class="eigcmp">50% → 60% ： 迷い 1.000 → 0.971　＝ <b>0.03 bit</b> しか減らない<br>
+        89% → 99% ： 迷い 0.500 → 0.081　＝ <b>0.42 bit</b> 減る</div>
+        <p>どちらも同じ「10ポイント」ですが、迷いの減り方は <b>14倍</b> 違います。
+        パーセントの差では、この違いを取り違えます。bit はこれを正しく扱う単位です。</p>
+        <p><b>数字の感覚。</b>
+        0.5 bit 以上なら大きく動く。0.1〜0.3 bit ならそれなりに動く。0.05 bit を切ると確率はほとんど動きません。</p>
+        <p class="eigwarn">⚠️ <b>ただし bit が小さいからといって切り捨てないでください。</b>
+        閾値のすぐそばにいるときは、わずかな動きでも除外域・確定域に入ります。
+        各行の「判断が変わる確率」を必ず併せて見てください。</p>
+      </div>
+    </details>
     <ul class="rank" id="rank"></ul>
   </section>
 </div>
