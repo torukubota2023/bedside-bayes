@@ -100,6 +100,24 @@ svg{display:block;width:100%;height:auto}
 .rank .br{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
 .rank .br .up{color:var(--rise)} .rank .br .dn{color:var(--fall)}
 .dampnote{font-size:11px;color:var(--flag);margin-top:3px;line-height:1.5}
+/* 機序ごとの読み方。「確率は動かないが確信は上がる」を、オッズとは別の軸として見せる。 */
+.mech{margin-top:10px;border:1px solid var(--rule);background:#FBFCFD}
+.mech .mh{padding:8px 12px;border-bottom:1px solid var(--rule-2);background:#F4F7F9;font-size:12.5px;color:var(--ink)}
+.mech .mh b{font-family:var(--mono)}
+.mech .md{color:var(--fall);font-family:var(--mono);margin-left:6px}
+.mech .mk{color:var(--ink-3);font-size:11.5px;margin-left:6px}
+.mech ul{list-style:none;margin:0;padding:0}
+.mech li{padding:8px 12px;border-bottom:1px dotted var(--rule-2);font-size:12.5px;line-height:1.7}
+.mech li:last-child{border-bottom:none}
+.mech .cl{font-weight:700;color:var(--ink)}
+.mech .fs{color:var(--ink-2)}
+.mech .ct{font-size:11.5px;margin-left:4px}
+.mech .agree{color:var(--fall)}
+.mech .alone{color:var(--ink-3)}
+.mech .clash{color:var(--rise);font-weight:700}
+.mech .contrib{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);float:right}
+.mech .mfoot{padding:8px 12px;background:#F4F7F9;border-top:1px solid var(--rule-2);font-size:11.5px;color:var(--ink-2);line-height:1.75}
+.mech .mfoot b{color:var(--ink)}
 /* 信頼区間まわり。値の確かさの差が一目で分かるようにする。 */
 .ci{font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-left:2px}
 .noci{color:var(--ink-3);font-style:normal}
@@ -177,7 +195,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.0.1</span>
+    <span class="ver" id="verLabel">v2.1.0</span>
   </div>
 </header>
 
@@ -247,6 +265,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 <section class="panel">
   <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
   <div class="verdict" id="verdict"></div>
+  <div id="mech"></div>
   <div class="zones" id="zones"></div>
   <div class="note" id="reachNote" style="margin-top:10px"></div>
   <details>
@@ -469,6 +488,15 @@ function ss(f){ // recover sensitivity / specificity from LR pair
   return {sens, spec};
 }
 function H(p){ p=clamp(p,1e-9,1-1e-9); return -(p*Math.log2(p)+(1-p)*Math.log2(1-p)); }
+
+/* 機序クラスタの表示名。cl は内部コードなので、画面には必ずこの名前で出す。
+   「どの生理を測っているか」が読めないと、なぜ減衰するのかが伝わらない。 */
+const CLNAME = {
+  impression:"全体的な臨床像", consol:"肺の実質化", fluid:"胸腔の液体貯留",
+  expand:"半胸郭の可動性低下", pleura:"胸膜の炎症",
+  filling:"心充満圧の上昇", venous:"体静脈のうっ滞", valve:"弁の異常",
+  airway:"気流の閉塞", hyper:"肺の過膨張", expose:"曝露歴"
+};
 
 /* applied findings -> ordered steps with correlation shrinkage */
 function steps(){
@@ -722,6 +750,51 @@ function drawVerdict(){
     + (C.unknown>0 ? `　<span class="noci">（${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い）</span>` : "")
     + `<br><span class="noci">上の軸に重ねた帯がこの範囲。点推定の一点だけを見て判断しないこと。</span></div>`;
   document.getElementById("verdict").innerHTML = `事後確率 <b style="font-family:var(--mono)">${pct(p)}%</b> — ${V}${more}${ciLine}`;
+  /* 機序ごとの読み方。オッズ（疾患の確率）と、所見そのものの確からしさは別の軸である。
+     同一機序の所見が増えても確率はほとんど動かないが、取り違えの可能性は下がる。
+     逆に同一機序で向きが食い違えば、どちらかが誤りという強い信号になる。
+     この2つを表示しないと、κ による減衰が「所見を無視している」と誤解される。 */
+  (function(){
+    const box=document.getElementById("mech");
+    /* drawVerdict() のスコープには S / pn が無いので自前で取る（p は上で取得済み）。 */
+    const S=steps(), pn=postNaive();
+    if(!S.length){ box.innerHTML=""; return; }
+    const g={};
+    S.forEach(s=>{ (g[s.f.cl]=g[s.f.cl]||[]).push(s); });
+    const cls=Object.keys(g);
+    const damped=S.filter(s=>s.damp).length;
+    const clash=cls.filter(c=>g[c].length>1 && new Set(g[c].map(s=>s.dir>0)).size>1);
+    const agree=cls.filter(c=>g[c].length>1 && new Set(g[c].map(s=>s.dir>0)).size===1);
+    const diff=(pn-p)*100;
+    const head = damped
+      ? `同じ機序の所見が重なっています。素朴に掛け算すると過大評価になるため、2つ目以降を減衰させています。<br>`
+        + `素朴ベイズ <b>${pct(pn)}%</b> → 相関補正後 <b>${pct(p)}%</b>`
+        + `<span class="md">${diff>=0?"−":"+"}${Math.abs(diff).toFixed(1)} ポイント</span>`
+        + `<span class="mk">κ=${kap.toFixed(2)}</span>`
+      : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">κ=${kap.toFixed(2)}</span>`;
+    const rows = cls.map(c=>{
+      const a=g[c], n=a.length;
+      const mixed = n>1 && new Set(a.map(s=>s.dir>0)).size>1;
+      const names = a.map(s=>esc(s.f.nm)+(s.dir>0?"（+）":"（−）")).join("　");
+      const prod = a.reduce((x,s)=>x*s.eff,1);
+      const tag = mixed
+        ? `<span class="ct clash">⚠ 食い違い ── 同じ機序なのに向きが逆。どちらかが誤りの可能性。取り直しを</span>`
+        : (n>1
+          ? `<span class="ct agree">一致 ${n}件 ── 確率はほぼ動かないが、取り違えの可能性は下がる</span>`
+          : `<span class="ct alone">単独 ── 取り違えの可能性が残る</span>`);
+      return `<li><span class="contrib">オッズ寄与 ×${prod.toFixed(2)}</span>`
+           + `<span class="cl">${esc(CLNAME[c]||c)}</span>${tag}`
+           + `<div class="fs">${names}</div></li>`;
+    }).join("");
+    const foot = `<b>確率を動かすのは「別の機序の所見」です。</b>`
+      + `同じ機序を別経路で測り直しても、疾患についての新しい証拠にはならないので確率はほとんど動きません。`
+      + `それでも意味はあります ── 一致した所見が増えるほど、「聞き間違い・触り間違いだった」可能性は下がる。`
+      + `確率ではなく、<b>その所見が本物だという確信</b>が上がるのです。`
+      + (clash.length? `<br><b style="color:var(--rise)">向きの食い違いがある機序があります。</b>同じ生理を測って逆の答えが出ているので、まず手技を確認してください。` : "")
+      + (agree.length? `<br>一致している機序：${agree.map(c=>esc(CLNAME[c]||c)).join("、")}。` : "");
+    box.innerHTML = `<div class="mech"><div class="mh">⌁ 機序ごとの読み方<br>${head}</div>`
+                  + `<ul>${rows}</ul><div class="mfoot">${foot}</div></div>`;
+  })();
   document.getElementById("zones").innerHTML =
     [["除外域（<"+tTest+"%）",reachable[0]],["グレーゾーン",reachable[1]],["確定域（≧"+tTreat+"%）",reachable[2]]]
     .map(([lb,v],i)=>`<div class="zone" style="${zoneOf(p)===i?'background:#EDF2F5':''}"><b style="color:${i===2?'var(--rise)':i===0?'var(--fall)':'var(--ink)'}">${(v*100).toFixed(0)}%</b><span>${lb}に着地</span></div>`).join("");
