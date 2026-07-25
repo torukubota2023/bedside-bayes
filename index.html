@@ -100,6 +100,14 @@ svg{display:block;width:100%;height:auto}
 .rank .br{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
 .rank .br .up{color:var(--rise)} .rank .br .dn{color:var(--fall)}
 .dampnote{font-size:11px;color:var(--flag);margin-top:3px;line-height:1.5}
+.unkbox{padding:10px 0 4px;border-top:2px solid var(--rule)}
+.unkttl{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.unknote{font-size:11.5px;color:var(--ink-2);line-height:1.75;margin-bottom:6px}
+.unklist{list-style:none;margin:0;padding:0}
+.unklist li{padding:4px 0;border-bottom:1px dotted var(--rule-2);display:flex;justify-content:space-between;gap:10px}
+.unklist li:last-child{border-bottom:none}
+.unknm{font-size:12.5px;color:var(--ink)}
+.unklr{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap}
 /* bit のやさしい解説。数字の隣で読めないと、単位の意味は伝わらない。 */
 .eig .note p{margin:0 0 8px}
 .eig .note p:last-child{margin-bottom:0}
@@ -209,7 +217,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.3.0</span>
+    <span class="ver" id="verLabel">v2.4.0</span>
   </div>
 </header>
 
@@ -586,7 +594,14 @@ const pct = p => p>0.999 ? ">99.9" : p<0.001 ? "<0.1" : p>=0.1 ? (p*100).toFixed
 /* 尤度比の表示。原著の有効桁を落とさない（2.00 を "2"、12.0 を "12" と出さない）。 */
 const lrf = v => v>=100 ? v.toFixed(0) : v>=10 ? v.toFixed(1) : v.toFixed(2);
 
-function ss(f){ // recover sensitivity / specificity from LR pair
+/* 原著が感度・特異度を報告している所見は、その実測値をそのまま使う（f.ss=[感度,特異度]）。
+   LR ペアからの復元は近似であり、とくに LR− が未報告（=1.0）のときは破綻する ── 
+   LR−=1 と LR+>1 は、どんな2×2表からも同時には出てこない矛盾した組だからである。
+   復元式はこの矛盾を「感度ほぼ0」に潰して解消してしまい、
+   「この所見はめったに陽性にならない」と誤認して期待情報利得がゼロ近くまで落ちる。
+   胸水の打診濁音（LR+ 8.7）が最下位に沈むという明確な誤りが実際に起きていた。 */
+function ss(f){
+  if(f.ss) return {sens:f.ss[0], spec:f.ss[1]};
   let lp=Math.max(f.lp,1.0001), ln=Math.min(Math.max(f.ln,0.0001),0.9999);
   let spec = clamp((lp-1)/(lp-ln), 0.02, 0.999);
   let sens = clamp(lp*(1-spec), 0.005, 0.999);
@@ -602,6 +617,11 @@ const CLNAME = {
   filling:"心充満圧の上昇", venous:"体静脈のうっ滞", valve:"弁の異常",
   airway:"気流の閉塞", hyper:"肺の過膨張", expose:"曝露歴"
 };
+
+/* LR− が未報告で、かつ感度・特異度の実測値も持っていない所見は、
+   期待情報利得を計算できない。ゼロと表示すると「価値がない」と誤読されるため、
+   算出不可であることを明示して別枠に置く。 */
+function eigUnknown(f){ return !f.ss && f.ln >= 0.999; }
 
 /* applied findings -> ordered steps with correlation shrinkage */
 function steps(){
@@ -641,7 +661,11 @@ function usedClusters(){ const w={}; steps().forEach(s=>{ w[s.f.cl]=(w[s.f.cl]||
 function shrink(f,n){
   if(!n) return f;
   const k=Math.pow(kap,n);
-  return Object.assign({},f,{lp:Math.exp(Math.log(f.lp)*k), ln:Math.exp(Math.log(f.ln)*k)});
+  /* 減衰を掛けたら実測の感度・特異度はもう当てはまらない。ss を外し、
+     減衰後の LR からの復元に委ねる（そうしないと κ が効かなくなる）。 */
+  const g=Object.assign({},f,{lp:Math.exp(Math.log(f.lp)*k), ln:Math.exp(Math.log(f.ln)*k)});
+  delete g.ss;
+  return g;
 }
 function zoneOf(p){ return p*100 < tTest ? 0 : (p*100 >= tTreat ? 2 : 1); }
 
@@ -812,7 +836,7 @@ function drawHeck(){
 function drawRank(){
   const p=post();
   const used=usedClusters();
-  const rows = panel.filter(f=>!st[f.id]).map(f0=>{
+  let rows = panel.filter(f=>!st[f.id]).map(f0=>{
     /* すでに同じ機序を測っていれば、その所見の実効LRは減衰している。
        減衰前のLRで情報利得を出すと、相関する所見を「次の一手」の上位に押し上げてしまう。 */
     const f = shrink(f0, used[f0.cl]||0);
@@ -827,13 +851,23 @@ function drawRank(){
     const twin = nd ? steps().filter(s=>s.f.cl===f0.cl).map(s=>s.f.nm)[0] : "";
     return {f, eig:Math.max(eig,0), a, b, pp, zc, nd, twin};
   }).sort((x,y)=>y.eig-x.eig);
+  /* 期待情報利得を計算できない所見は、順位に混ぜずに別枠へ出す。
+     ゼロとして最下位に並べると「価値がない」と読まれるが、実際は「まだ分からない」である。 */
+  const unk = rows.filter(r=>eigUnknown(r.f));
+  rows = rows.filter(r=>!eigUnknown(r.f));
   const mx = rows.length? Math.max(...rows.map(r=>r.eig), 1e-6) : 1;
-  document.getElementById("rank").innerHTML = rows.length ? rows.map(r=>`
+  document.getElementById("rank").innerHTML = (rows.length ? rows.map(r=>`
     <li><div class="hd"><span class="nm">${esc(r.f.nm)}</span><span class="bits">${r.eig.toFixed(3)} bit</span></div>
       <div class="bar"><i style="width:${(r.eig/mx*100).toFixed(1)}%"></i></div>
       <div class="br">陽性なら <span class="up">${pct(r.a)}%</span>（出る見込み ${(r.pp*100).toFixed(0)}%）／陰性なら <span class="dn">${pct(r.b)}%</span>${r.zc>0.02?`　▸ 判断が変わる確率 ${(r.zc*100).toFixed(0)}%`:""}</div>
       ${r.nd?`<div class="dampnote">⌁ 「${esc(r.twin)}」と同じ機序をもう一度測ることになるため、この利得は κ で割り引いてある</div>`:""}
-    </li>`).join("") : `<li class="note">すべての所見をとり終えた。診察からこれ以上引き出せる情報はない。</li>`;
+    </li>`).join("") : (unk.length ? "" : `<li class="note">すべての所見をとり終えた。診察からこれ以上引き出せる情報はない。</li>`))
+    + (unk.length ? `<li class="unkbox"><div class="unkttl">期待情報利得を算出できない所見（${unk.length}件）</div>
+      <div class="unknote">下の所見は<b>原著が陰性尤度比を報告しておらず、感度・特異度も公表されていない</b>ため、
+      「取ったらどれだけ迷いが減るか」を計算できない。<b>価値が無いという意味ではない</b>。
+      陽性のときの重みは LR+ のとおりで、下表のいくつかはこのパネルで最も強い所見である。</div>
+      <ul class="unklist">${unk.map(r=>`<li><span class="unknm">${esc(r.f.nm)}</span>
+        <span class="unklr">LR+ ${r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "");
 }
 
 function drawVerdict(){
