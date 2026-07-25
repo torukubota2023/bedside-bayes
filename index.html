@@ -117,6 +117,8 @@ svg{display:block;width:100%;height:auto}
 .eigt td:last-child{font-family:var(--mono)}
 .eigcmp{background:#F7F9FA;border-left:3px solid var(--rule);padding:7px 11px;margin:8px 0;font-family:var(--mono);font-size:12px;line-height:1.9}
 .eigwarn{color:var(--flag)}
+.tsrc{font-size:11px;line-height:1.75;color:var(--ink-2);margin-top:6px;padding:7px 10px;background:#F7F9FA;border-left:3px solid var(--rule)}
+.tsrc b{color:var(--ink)}
 .eigh{font-size:12.5px;color:var(--ink);margin:14px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--rule-2);font-weight:700}
 .eigh:first-of-type{margin-top:10px}
 .eigsvg{width:100%;max-width:520px;height:auto;display:block;margin:8px 0 2px}
@@ -217,7 +219,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.6.1</span>
+    <span class="ver" id="verLabel">v2.7.0</span>
   </div>
 </header>
 
@@ -239,6 +241,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <div class="ctrl">
       <label for="tTreat">治療閾値（これ以上なら検査せず治療開始） <b id="tTreatV">70%</b></label>
       <input type="range" id="tTreat" min="30" max="99" step="1" value="70">
+      <div class="tsrc" id="tSrc"></div>
     </div>
     <div class="ctrl">
       <label for="kap">所見の相関補正 κ <b id="kapV">0.75</b></label>
@@ -431,13 +434,15 @@ const DB = {
      ───────────────────────────────────────────────────────────── */
   cap: {
     name:"市中肺炎", short:"肺炎",
-    pre: 0.20, tTest: 5, tTreat: 60,
-    ctx:"急性咳嗽・発熱で受診。ED受診者の有病率はおよそ20%、プライマリ・ケア外来では10%前後。",
+    pre: 0.20, tTest: 9.5, tTreat: 43,
+    tSrc:"Ebell 2018（PMID 30348882）：急性咳嗽で受診した患者を診るプライマリケア医256人の764判断から算出。検査閾値 9.5%（95%CI 8.7–10.5）／治療閾値 43.1%（40.1–46.4）。同論文では、医師が肺炎の確率を系統的に過大評価しており（75%が予測モデルより高く見積もった）、正しい確率を示すと6件に1件で判断が変わったことも報告されている。",
+    ctx:"急性咳嗽・発熱で受診。ED受診者の有病率はおよそ20%、プライマリ・ケア外来では10%前後。閾値の2本は、このパネルだけ実測から導かれた値を使っている（下の帯の脚注を参照）。",
     src:[
       "Dale AP, Marchello C, Ebell MH. Clinical gestalt to diagnose pneumonia, sinusitis, and pharyngitis: a meta-analysis. Br J Gen Pract. 2019;69(684):e444-e453. PMID 31208974 / PMC6582453（総合的臨床印象の専用メタ解析・16研究）",
       "Ebell MH, Chupp H, Cai X, Bentivegna M, Kearney M. Accuracy of Signs and Symptoms for the Diagnosis of Community-acquired Pneumonia: A Meta-analysis. Acad Emerg Med. 2020;27(7):541-553. PMID 32329557 / DOI 10.1111/acem.13965（17研究のメタ解析）",
       "Heckerling PS, Tape TG, Wigton RS, et al. Clinical prediction rule for pulmonary infiltrates. Ann Intern Med. 1990;113(9):664-670. PMID 2221647（5項目の予測ルール。導出1134例・検証302例、ROC 0.82）",
       "Metlay JP, Kapoor WN, Fine MJ. Does this patient have community-acquired pneumonia? JAMA. 1997;278(17):1440-5. PMID 9356004",
+      "Ebell MH, Locatelli I, Mueller Y, Senn N, Morgan K. Diagnosis and treatment of community-acquired pneumonia in patients with acute cough: a quantitative study of decision thresholds in primary care. Br J Gen Pract. 2018;68(676):e765-e774. PMID 30348882 / PMC6193794（このパネルの検査閾値9.5%・治療閾値43.1%の出典）",
       "McGee S. McGee\u0027s Evidence-Based Physical Diagnosis. 6th ed. EBM Box 29.1 / 29.2 / 32.1（胸郭拡張左右差・打診濁音。原著は Diehr P, et al. J Chronic Dis. 1984. PMID 6699126）"
     ],
     f:[
@@ -983,6 +988,14 @@ function render(){
   document.getElementById("preV").textContent=pct(pre)+"%";
   document.getElementById("tTestV").textContent=tTest+"%";
   document.getElementById("tTreatV").textContent=tTreat+"%";
+  /* 閾値には、実測から導かれたものと、慣習で置いただけのものがある。
+     画面上は同じ2本の線に見えるので、どちらなのかを必ず添える。 */
+  const changed = tTest!==DB[key].tTest || tTreat!==DB[key].tTreat;
+  document.getElementById("tSrc").innerHTML = changed
+    ? `<b>この2本は、あなたが動かした値です。</b>閾値は治療の益と害の比で決まり、有病率や所見では動きません。`
+    : (DB[key].tSrc
+        ? `<b>導出値。</b>${esc(DB[key].tSrc)}`
+        : `<b>慣習値。</b>このパネルの2本は、文献から導いたものではなく、慣例的に置いた目安である。閾値の理論値は「治療閾値のオッズ ＝ 治療の害 ÷ 治療の益」で決まり（Pauker &amp; Kassirer, N Engl J Med 1980, PMID 7366635）、有病率や所見の数では動かない。見逃しの害が大きい患者では下がり、治療の害が大きい患者では上がる。`);
   document.getElementById("kapV").textContent=kap.toFixed(2);
   drawFindings(); drawHeck(); drawTrack(); drawRank(); drawVerdict();
   if(typeof syncURL==="function") syncURL();
@@ -1043,7 +1056,13 @@ function applyHash(){
   /* 0 は有効な値。`+q.k||既定` だと κ=0（同一機序は1つだけ採用）が既定値に化ける。 */
   const num=(v,d)=>{ const n=parseFloat(v); return Number.isFinite(n)?n:d; };
   pre=clamp(num(q.p,DB[key].pre),1e-4,.999);
-  tTest=num(q.t,DB[key].tTest); tTreat=num(q.r,DB[key].tTreat); kap=clamp(num(q.k,0.75),0,1);
+  /* 共有リンクの閾値は、スライダーと同じ範囲に丸め、必ず 検査閾値 < 治療閾値 にする。
+     ここを素通しにすると #t=90&r=10 のようなリンクで、50% の患者に「除外域。ここで
+     止めるのが合理的」と表示させられる。受け取った側は閾値が壊れていることに気づけない。 */
+  tTest =clamp(num(q.t,DB[key].tTest ), 0.5, 40);
+  tTreat=clamp(num(q.r,DB[key].tTreat), 30,  99);
+  if(tTest>=tTreat){ tTest=DB[key].tTest; tTreat=DB[key].tTreat; }
+  kap=clamp(num(q.k,0.75),0,1);
   if(q.c){ try{ JSON.parse(decodeURIComponent(q.c)).forEach((a,i)=>
       panel.push({id:"u"+i, cat:a[4]||"自作", nm:a[0], lp:+a[1], ln:+a[2], cl:a[3]||("u"+i), tag:"own", note:"共有リンクに含まれる自作の値"})); }catch(e){} }
   if(q.f) q.f.split(",").forEach(kv=>{const[a,b]=kv.split(":"); if(panel.some(f=>f.id===a)) st[a]=+b;});
