@@ -217,7 +217,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.5.0</span>
+    <span class="ver" id="verLabel">v2.6.0</span>
   </div>
 </header>
 
@@ -456,7 +456,7 @@ const DB = {
       {id:"ego",  cat:"聴診", nm:"ヤギ音（エゴフォニー / E-to-A）", lp:6.17, ln:0.96,
        ci:[1.34,18.0], cl:"consol", tag:"src", ltag:"chk",
        note:"LR+ 6.17 (1.34–18.0)。信頼区間が極めて広い。病態非特異（実質化でも圧迫肺でも出る）で、無くても除外にならない"},
-      {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.3, ln:0.9, ci:[2.3,4.8], cin:[0.8,0.9], ss:[0.165,0.95], cl:"consol", tag:"chk",
+      {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.3, ln:0.9, ci:[2.3,4.8], cin:[0.8,0.9], ss:[0.165,0.95], cl:"consol", tag:"src",
        note:"McGee EBM Box 30.1 / 32.1：感度14–19%・特異度94–96%、LR+ 3.3 (2.3–4.8)／LR− 0.9 (0.8–0.9)。以前は 3.5 を採っていたが、ガイド表t22 が併記していた感度8–63%・特異度64–96% は一次資料に無く、その組からは 3.5 が出てこない。二次資料で確認できる 3.3 に揃えた"},
       {id:"dull", cat:"打診", nm:"限局した打診濁音", lp:2.62, ln:1.0,
        ci:[1.14,5.30], ss:[0.183,0.93], cl:"consol", tag:"src",
