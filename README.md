@@ -4,6 +4,8 @@
 事前確率に所見を積んで事後確率の軌跡を描き、**まだ取っていない所見を全部取ったときに到達しうる確率の分布**まで計算する。
 「この診察は結論を変えるのか」に、その場で数量で答えるためのもの。
 
+**公開URL: https://torukubota2023.github.io/bedside-bayes/**
+
 - 依存ライブラリなし・ビルド不要・通信なし（`index.html` 単体でも動く）
 - PWA 対応（ホーム画面に追加すればオフラインで起動）
 - 設定と所見の状態が URL に入るので、**症例そのものをリンクで配れる**
@@ -11,43 +13,103 @@
 
 ---
 
-## 公開手順
+## このツールが答えようとしている3つの問い
 
-### 1. 3か所を自分の情報に置き換える
+1. **この所見は確率をどれだけ動かすか** — 事前確率に尤度比を積んだ軌跡
+2. **次に何を診るべきか** — 未実施の所見を期待情報利得（bit）で順位づけ
+3. **診察を続ける意味はあるか** — 残りの所見を全部取ったときに到達しうる確率の分布（到達可能域）
 
-```bash
-sed -i '' -e 's/（あなたの名前）/山田 太郎/g' \
-          -e 's#https://USERNAME.github.io/bedside-bayes/#https://your-account.github.io/bedside-bayes/#g' \
-          -e 's/（連絡先メールまたはフォームURL）/you@example.com/g' index.html
-```
+そして v2.0.0 では、4つ目の問いを加えた。
 
-（Linux の sed は `-i ''` ではなく `-i` のみ）
+4. **その数字はどれくらい確かなのか** — 尤度比そのものの95%信頼区間を事後確率の幅として表示する
 
-### 2. どれか一つで公開する
+---
 
-**GitHub Pages（推奨・無料・独自ドメイン可）**
+## 過大評価をどう防いでいるか
 
-```bash
-git init && git add -A && git commit -m "ベイズ診察エンジン v1.0.0"
-git branch -M main
-git remote add origin git@github.com:your-account/bedside-bayes.git
-git push -u origin main
-# GitHub の Settings → Pages → Source: main / (root) を選ぶ
-```
+このアプリの最大の前提は**所見間の条件付き独立**である。しかし呼吸器・循環器の所見は同じ病態を別の窓から見ていることが多く、素朴に尤度比を掛け算すると確率を過大に見積もる。対策を2段構えで入れている。
 
-数分で `https://your-account.github.io/bedside-bayes/` が生きる。`.nojekyll` は同梱済み。
+### 1. 機序クラスタと相関補正 κ
 
-**Netlify / Cloudflare Pages** — このフォルダをドラッグ&ドロップするだけ。ビルドコマンドは空欄。
+各所見に「機序クラスタ」を持たせ、同一クラスタの n 番目の所見を `logLR × κⁿ` に減衰させる。強い所見から順に処理するので、最強の1つは満額、以降が割り引かれる。
 
-**院内イントラネット / 配布** — `index.html` を単体でコピーすれば動く。Service Worker と PWA は無効になるが、計算機能はすべて残る。USB でも共有フォルダでも可。
+| κ | 意味 |
+|---|---|
+| **1** | 素朴ベイズ（教科書どおりのLR掛け算） |
+| 0.75 | 既定値 |
+| **0** | 同一機序は最強の1つだけ採用する（と数学的に同値） |
 
-### 3. 公開後に確認する
+肺炎パネルでヤギ音・気管支呼吸音・打診濁音（すべて肺実質化の所見）を陽性にすると、事前20%からの事後確率は **κ=1 で 93%、κ=0 で 61%** になる。この32ポイントの幅こそが、独立性の仮定が抱えているリスクの大きさである。
 
-- [ ] スマートフォンで開いて横スクロールが出ないか
-- [ ] リンク共有ボタンで出た URL を別端末で開き、所見の状態が再現されるか
-- [ ] SNS に貼ってカード画像（`icons/ogp.png`）が出るか
-- [ ] 「ホーム画面に追加」後、機内モードで起動するか
-- [ ] 免責・出典・連絡先が自分の意図どおりか
+**κ を動かすと壊れる結論は、もともと脆い。**
+
+### 2. 信頼区間
+
+尤度比は点推定ではなく区間で報告される。たとえばヤギ音の LR+ 6.17 の95%信頼区間は 1.34–18.0 で、事前20%からの事後確率は **25%〜82%** の幅を持つ。点推定の 61% だけを見せるのは、決まっていないことを決まったように見せることになる。
+
+軸に重ねた金色の帯がこの範囲である。区間が公表されていない所見は「区間不明」と明示し、その件数を判定欄に表示する。
+
+---
+
+## 尤度比の出典と信頼度
+
+各所見には3種のバッジが付く。
+
+| バッジ | 意味 |
+|---|---|
+| 出典 | 原著の報告値そのまま |
+| 導出 | 報告された感度・特異度から計算 |
+| 要確認 | 一次文献に到達できていない値。**教材としてそのまま使わない** |
+
+**LR− が「―（報告なし）」となっている所見がある。** これは原著が陰性尤度比を報告していないか、有意でないとしたものである。仮の値を置くと「無いはずの情報」を作ってしまうため、あえて無情報（LR−=1）としてある。**陽性は強いが陰性は無意味**という所見は実在し、それ自体が教材になる。
+
+### 主要な出典
+
+**肺炎**
+- Dale AP, Marchello C, Ebell MH. Clinical gestalt to diagnose pneumonia, sinusitis, and pharyngitis: a meta-analysis. *Br J Gen Pract.* 2019;69(684):e444-e453. PMID 31208974 / PMC6582453
+- Ebell MH, Chupp H, Cai X, Bentivegna M, Kearney M. Accuracy of Signs and Symptoms for the Diagnosis of Community-acquired Pneumonia: A Meta-analysis. *Acad Emerg Med.* 2020;27(7):541-553. PMID 32329557 / DOI 10.1111/acem.13965
+- Heckerling PS, Tape TG, Wigton RS, et al. Clinical prediction rule for pulmonary infiltrates. *Ann Intern Med.* 1990;113(9):664-670. PMID 2221647
+- Metlay JP, Kapoor WN, Fine MJ. Does this patient have community-acquired pneumonia? *JAMA.* 1997;278(17):1440-5. PMID 9356004
+- Diehr P, Wood RW, Bushyhead J, et al. Prediction of pneumonia in outpatients with acute cough. *J Chronic Dis.* 1984. PMID 6699126
+
+**胸水**
+- Wong CL, Holroyd-Leduc J, Straus SE. Does this patient have a pleural effusion? *JAMA.* 2009;301(3):309-317. PMID 19155458
+- Kalantri S, Joshi R, Lokhande T, et al. Accuracy and reliability of physical signs in the diagnosis of pleural effusion. *Respir Med.* 2007;101(3):431-438. PMID 16965906
+
+**急性心不全**
+- Wang CS, FitzGerald JM, Schulzer M, Mak E, Ayas NT. Does this dyspneic patient in the emergency department have congestive heart failure? *JAMA.* 2005;294(15):1944-56. PMID 16234501 / DOI 10.1001/jama.294.15.1944
+
+**気流閉塞（COPD）**
+- Straus SE, McAlister FA, Sackett DL, Deeks JJ. The accuracy of patient history, wheezing, and laryngeal measurements in diagnosing obstructive airway disease. CARE-COAD1 Group. *JAMA.* 2000;283(14):1853-7. PMID 10770147
+- Holleman DR Jr, Simel DL. Does the clinical examination predict airflow limitation? *JAMA.* 1995;273(4):313-9. PMID 7815660
+
+**横断**
+- McGee S. *Evidence-Based Physical Diagnosis.* 4th ed. EBM Box 29.1 / 29.2
+
+尤度比の数値そのものは各原著論文に帰属する。
+
+### 未解決のまま残している値
+
+以下は一次文献に到達できておらず、`要確認` バッジを付けたうえで掲載している。JAMA の全文が公開されていないためで、機関アクセスでの確認を待っている。
+
+- 胸水・声音振盪低下の統合 LR+（本アプリは McGee 経由の Kalantri 値 5.7 を採用）
+- 心不全の 肝頸静脈逆流・心雑音・下腿浮腫・起坐呼吸（Wang 2005 Table 3）
+- 肺炎・気管支呼吸音（Metlay 由来 3.5 と Heckerling 由来 3.3 の2系統が流通）
+- COPD・患者申告の喘鳴
+- 肺炎・胸郭拡張左右差の信頼区間（原著の症例数から再構成した概算であり、公表された区間ではない）
+
+---
+
+## 計算の中身
+
+| 項目 | 式 | 備考 |
+|---|---|---|
+| 事後オッズ | 事前オッズ × ΠLR | 相関補正 κ を適用 |
+| 相関補正 | 同一クラスタの n 番目の所見を `logLR × κⁿ` に減衰 | κ=1 で素朴ベイズ、κ=0 で最強の1つだけ |
+| 感度・特異度の復元 | `spec=(LR⁺−1)/(LR⁺−LR⁻)`, `sens=LR⁺(1−spec)` | 分岐確率の計算に使用 |
+| 期待情報利得 | `H(p) − [P(+)H(p₊) + P(−)H(p₋)]` | 単位 bit。κ の減衰を反映 |
+| 到達可能域 | 未実施 n 所見の 2ⁿ 分岐を全列挙 | 適用済み所見のクラスタ消費を引き継ぐ |
+| 信頼区間 | 各所見の LR の95%CI を同じ経路で伝播 | 区間不明の所見は点推定で代用し件数を明示 |
 
 ---
 
@@ -63,67 +125,45 @@ icons/                アイコンと OGP 画像
 
 ---
 
-## 計算の中身
-
-| 項目 | 式 | 備考 |
-|---|---|---|
-| 事後オッズ | 事前オッズ × ΠLR | 相関補正 κ を適用 |
-| 相関補正 | 同一クラスタの n 番目の所見を `logLR × κⁿ` に減衰 | κ=1 で素朴ベイズ |
-| 感度・特異度の復元 | `spec=(LR⁺−1)/(LR⁺−LR⁻)`, `sens=LR⁺(1−spec)` | 分岐確率の計算に使用 |
-| 期待情報利得 | `H(p) − [P(+)H(p₊) + P(−)H(p₋)]` | 単位 bit、H は2値エントロピー |
-| 到達可能域 | 未実施 n 所見の 2ⁿ 分岐を全列挙 | 各分岐の生起確率で重み付け |
-
-**最大の前提は所見間の条件付き独立。** 濁音・気管支呼吸音・ヤギ音のような同一機序の所見の尤度比を掛け算してよいかは未解決で、JAMA Rational Clinical Examination も同じ留保をつけている。κ スライダーはその感度分析にあたる。κ を動かすと壊れる結論は、もともと脆い。
-
----
-
-## 尤度比の出典と信頼度
-
-各所見には4種のバッジが付く。
-
-| バッジ | 意味 | 教材への使い方 |
-|---|---|---|
-| 出典 | 原著の報告値そのまま | そのまま使える |
-| 導出 | 報告された感度・特異度から計算 | そのまま使える |
-| 推定 | 報告値がなく、所見の性質から置いた仮値 | **差し替え推奨** |
-| 要確認 | 広く流通しているが一次文献を確認しきれていない値 | **差し替え必須** |
-
-主要な出典：
-
-- Ebell MH, et al. *Accuracy of Signs and Symptoms for the Diagnosis of Community-acquired Pneumonia: A Meta-analysis.* Acad Emerg Med. 2020;27(7):541-553.
-- Metlay JP, Kapoor WN, Fine MJ. *Does this patient have community-acquired pneumonia?* JAMA. 1997;278(17):1440-5.
-- Wong CL, Holroyd-Leduc J, Straus SE. *Does this patient have a pleural effusion?* JAMA. 2009;301(3):309-317.
-- Wang CS, et al. *Does this dyspneic patient in the emergency department have congestive heart failure?* JAMA. 2005;294(15):1944-56.
-- Straus SE, et al. *Diagnosis of obstructive airways disease from the clinical examination.* J Gen Intern Med.
-- Holleman DR Jr, Simel DL. *Does the clinical examination predict airflow limitation?* JAMA. 1995;273(4):313-9.
-- McGee S. *Evidence-Based Physical Diagnosis.*
-
-尤度比の数値そのものは各原著論文に帰属する。
-
 ## 所見パネルを自分のものにする
 
 アプリ内の「＋ 所見を追加・LRを差し替える」から、所見名・LR+・LR−・機序クラスタを入力すれば即座に計算に入る。作ったパネルは JSON で書き出せる。
-恒久的に組み込むなら `index.html` 内の `const DB = {...}` を直接編集する。疾患を1つ足すのは、`DB` にキーを1つ増やすだけで済む。
+恒久的に組み込むなら `index.html` 内の `const DB = {...}` を直接編集する。疾患を1つ足すのは `DB` にキーを1つ増やすだけで済む。
 
 ```js
 mydisease: {
   name:"表示名", short:"タブ名", pre:0.2, tTest:5, tTreat:70,
   ctx:"どんな患者集団を想定しているか",
-  src:["出典1","出典2"],
+  src:["出典1（PMID / DOI を必ず書く）"],
   f:[{ id:"a1", cat:"聴診", nm:"所見名", lp:6.2, ln:0.9,
-       cl:"機序クラスタ名", tag:"src", note:"補足", ltag:"est" }],
+       ci:[3.5,10.5],      // LR+ の95%信頼区間（不明なら省略）
+       cin:[0.7,0.95],     // LR− の95%信頼区間（不明なら省略）
+       cl:"機序クラスタ名", tag:"src", note:"補足" }],
   cases:[{ t:"症例名", d:"説明", pre:0.3, set:{a1:1} }]
 }
 ```
 
-`tag` は `src` / `der` / `est` / `chk`、`ltag` は LR− 側のバッジ（省略可）。`cl` が同じ所見どうしが相関補正の対象になる。
+`tag` は `src` / `der` / `chk`。`cl` が同じ所見どうしが相関補正の対象になる。
+**LR− が報告されていない所見は `ln:1.0` にする**（仮の値を置かない）。
+
+---
+
+## 開発
+
+ローカルで動かすだけなら `index.html` をブラウザで開けばよい。Service Worker と PWA は `http(s)` でのみ有効になる。
+
+```bash
+python3 -m http.server 8531
+```
+
+Service Worker はネットワーク優先・キャッシュ予備で動く。**`index.html` を更新したら `sw.js` の `VERSION` を必ず上げること。** 上げ忘れると、既に開いたことのある端末に古い版が配られ続ける。
 
 ---
 
 ## ライセンス
 
 - コード：MIT License（`LICENSE` 参照）
-- 解説文・パネル定義：CC BY 4.0
+- 解説文・パネル定義：CC BY 4.0（表示：久保田 徹 / Toru Kubota, MD）
 - 尤度比の数値：各原著論文に帰属
 
 ## 免責
@@ -132,6 +172,44 @@ mydisease: {
 
 入力内容は端末内でのみ処理され、外部に送信されない。サーバ保存・アクセス解析・広告・Cookie のいずれも使用していない。**患者識別情報は入力しないこと。**
 
+尤度比の誤りのご指摘は [GitHub Issues](https://github.com/torukubota2023/bedside-bayes/issues) へお願いします。特に歓迎します。
+
 ## 更新履歴
 
-- v1.0.0 — 初版。4疾患、確率軌跡、期待情報利得ランキング、到達可能域、相関補正、URL共有、PWA。
+### v2.0.0
+
+一次文献の監査にもとづく数値の全面見直しと、信頼区間の導入。**v1.0.0 の共有リンクは同じ設定でも異なる確率を返す。**
+
+**訂正した数値**
+
+| 所見 | v1.0.0 | v2.0.0 | 根拠 |
+|---|---|---|---|
+| COPD・聴診上の喘鳴 | 12.0 | **2.70 (1.70–4.20)** | Straus 2000 の報告値。原著は多変量で有意にならなかったと明記 |
+| COPD・喫煙 | 70 pack-years 超 / 8.0 | **40 pack-years 超 / 8.30** | 原著の閾値は40。カットオフの取り違えだった |
+| COPD・強制呼気時間 | 9秒超 / 4.8 | **8秒超（60歳以上）/ 4.08 (2.54–6.79)** | 最良カットオフは6秒 |
+| 肺炎・総合的臨床印象 | 6.32 / 0.45 | **7.70 (4.80–11.5) / 0.54 (0.42–0.65)** | ゲシュタルト専用メタ解析。LR− は仮値だった |
+| 肺炎・crackles | 1.80 | **2.00 (1.54–2.58)** | 1.5–2.6 は範囲ではなく信頼区間 |
+| 肺炎・気管支呼吸音 | 3.30 | **3.50** | Metlay 系に統一 |
+| 胸水・呼吸音減弱 | 5.0 / 0.40 | **4.10 / 0.50** | Kalantri の感度57%・特異度86%から算出 |
+| 胸水・声音振盪低下 | 5.9 | **5.70 / 0.20** | McGee 経由の Kalantri 値。Wong の統合 LR− 0.21 とも一致 |
+| 胸水・聴診打診法 | 4.0 / 0.50 | **8.30 / ―** | McGee EBM Box 29.2 |
+
+**陰性尤度比を「報告なし」に改めた所見** — 胸水・打診濁音、肺炎・打診濁音、肺炎・胸郭拡張左右差、COPD・喫煙、COPD・喉頭高、COPD・強制呼気時間、胸水・聴診打診法。いずれも v1.0.0 では仮の値が入っていた。
+
+**追加** — COPD・過共鳴（LR+ 7.30 / LR− 0.80、McGee EBM Box 29.2）／肺炎パネルに Heckerling 1990 の5項目チェックリスト
+**削除** — COPD・心濁音界の消失（出所が特定できなかったため）
+
+**修正した不具合**
+
+- 共有リンクの自作所見名から HTML 属性を注入できた（クロスサイトスクリプティング）
+- 「次の一手」の期待情報利得に相関補正 κ が効いておらず、同一機序の所見を最大71%過大評価していた
+- 到達可能域が適用済み所見のクラスタ消費を無視し、到達範囲の上限を過大に描いていた
+- 8所見以上で確率軌跡が目盛りと重なって判読できなくなっていた
+- 印刷・PDF 出力時に免責・出典・ライセンスが消えていた
+- `κ=0` を指定した共有リンクが既定値 0.75 に読み替えられていた
+- 本文コントラストが WCAG AA 基準を下回っていた（3.44 → 4.92）
+- タッチ端末での操作領域が小さすぎた／狭い画面で確率軌跡の文字が判読不能だった
+
+### v1.0.0
+
+初版。4疾患、確率軌跡、期待情報利得ランキング、到達可能域、相関補正、URL共有、PWA。
