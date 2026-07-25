@@ -217,7 +217,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.4.0</span>
+    <span class="ver" id="verLabel">v2.5.0</span>
   </div>
 </header>
 
@@ -448,8 +448,8 @@ const DB = {
        cin:[0.11,0.48], cl:"impression", tag:"der",
        note:"LR− 0.25 (0.11–0.48) が Ebell 2020 の報告値。感度93%から LR+ を導出。すべて正常なら肺炎は考えにくい"},
       {id:"fev",  cat:"バイタル", nm:"実測体温の上昇（37.8℃ 超）", lp:2.52, ln:1.0,
-       ci:[2.02,3.20], cl:"impression", tag:"src",
-       note:"LR+ 2.52 (2.02–3.20)。Heckerling の5項目①と同じ閾値。LR− は原著に報告がない"},
+       ci:[2.02,3.20], ss:[0.378,0.85], cl:"impression", tag:"src",
+       note:"LR+ 2.52 (2.02–3.20)。Heckerling の5項目①と同じ閾値。Ebell 2020 は LR− を報告していないが、McGee EBM Box 32.1 が同じ所見に感度16–75%・特異度44–95%（LR− 0.7）を与えている。bit の計算には、その範囲の中で LR+ 2.52 と整合する組（感度38%・特異度85%）を使う。この組から出る LR− は 0.73 で McGee の 0.7 とほぼ一致する"},
       {id:"crk",  cat:"聴診", nm:"クラックル（ラ音・水泡音・捻髪音）", lp:2.00, ln:0.80,
        ci:[1.54,2.58], cl:"impression", tag:"src", ltag:"chk",
        note:"統合LR+ 2.00 (1.54–2.58)。1.5–2.6 は値の範囲ではなく信頼区間。弱いが最も高感度で再現性がよい「気づく入口」。LR− はガイド記載 0.6–0.9 の幅があり未確定"},
@@ -459,10 +459,10 @@ const DB = {
       {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.5, ln:0.90, cl:"consol", tag:"chk",
        note:"Metlay 由来 3.5 と Heckerling 1990 由来 3.3 の2系統が流通しており未決着。ガイドは 3.5 を採用。機関アクセスでの確認待ち"},
       {id:"dull", cat:"打診", nm:"限局した打診濁音", lp:2.62, ln:1.0,
-       ci:[1.14,5.30], cl:"consol", tag:"src",
-       note:"LR+ 2.62 (1.14–5.30)。McGee は肺炎の打診濁音の LR− を「有意でない」としているため、陰性側は無情報とした。打診濁音のLR+は病態依存（胸水では8.7）"},
+       ci:[1.14,5.30], ss:[0.183,0.93], cl:"consol", tag:"src",
+       note:"LR+ 2.62 (1.14–5.30、Ebell 2020)。McGee は肺炎の打診濁音の LR− を「有意でない」としているため、陰性側は無情報のままにした。bit の計算には McGee EBM Box 32.1 の感度4–26%・特異度82–99% の範囲から、LR+ 2.62 と整合する組（感度18%・特異度93%）を使う。同じ打診濁音でも胸水を狙えば 4.8 になる — 所見の重みは標的病態で変わる"},
       {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差（患側が動かない）", lp:44.1, ln:1.0,
-       ci:[5.3,256], ciNote:"概算・出典なし", cl:"expand", tag:"chk",
+       ci:[5.3,256], ciNote:"概算・出典なし", ss:[0.05,0.9989], cl:"expand", tag:"chk",
        note:"McGee EBM Box 29.1。原著 Diehr 1984 は全1819例中 肺炎48例で、感度5%・特異度100%。LR+ はごく少数例（肺炎約2例 対 非肺炎約2例）で決まっており極めて不安定。McGee も LR− は「有意でない」としている。陽性は強いが陰性は無情報という非対称の典型"}
     ],
     heckerling:{
@@ -481,28 +481,33 @@ const DB = {
     pre: 0.20, tTest: 5, tTreat: 65,
     ctx:"呼吸困難・胸部異常影の鑑別。診察が最も切れ味を発揮する領域のひとつ。",
     src:[
-      "Wong CL, Holroyd-Leduc J, Straus SE. Does this patient have a pleural effusion? JAMA. 2009;301(3):309-317. PMID 19155458（5研究934例の統合）",
       "Kalantri S, Joshi R, Lokhande T, et al. Accuracy and reliability of physical signs in the diagnosis of pleural effusion. Respir Med. 2007;101(3):431-438. PMID 16965906（278例、観察者間一致 κ 0.84–0.89）",
-      "McGee S. Evidence-Based Physical Diagnosis. 4th ed. EBM Box 29.1 / 29.2（Kalantri の感度・特異度から算出した LR）"
+      "McGee S. McGee\u0027s Evidence-Based Physical Diagnosis. 6th ed. EBM Box 35.1 / 29.1 / 29.2 / 30.1（上記 Kalantri の感度・特異度と、そこから算出した LR）",
+      "Guarino JR, Guarino JC. Auscultatory percussion: a simple method to detect pleural effusion. J Gen Intern Med. 1994;9:71-74.（聴診打診法。Kalantri と統合されている）",
+      "※ このパネルは Kalantri 2007 の単一コホート278例に統一してある。Wong 2009（5研究934例）の統合値は所見ごとに元研究の組み合わせが違い、感度・特異度も公表されていないため、同一集団での相関補正が成立しない。以前は打診濁音だけ Wong の 8.7 を使っていたが、出所を揃えて 4.8 に改めた。"
     ],
     f:[
-      {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:8.7, ln:1.0,
-       ci:[2.2,33.8], cl:"fluid", tag:"src",
-       note:"統合LR+ 8.7 (2.2–33.8)。単一所見として最も精度が高い。LR− の統合値は公表されておらず、他所見の 0.21 を流用すると誤りになるため陰性側は無情報とした（Kalantri 単独では LR− 0.1 の報告があるが出所が異なるので併用しない）"},
-      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.21,
-       cin:[0.12,0.37], cl:"fluid", tag:"src",
-       note:"McGee EBM Box 29.1（Kalantri 感度82%・特異度86%）。Wong の統合 LR− 0.21 (0.12–0.37) とほぼ一致しており、独立の2経路が同じ値に収束している。除外に使える数少ない所見"},
-      {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
-       ci:[5.2,12.7], cl:"expand", tag:"src",
-       note:"統合LR+ 8.1 (5.2–12.7)。Kalantri の感度74%・特異度91%と整合し、多変量でも独立の予測因子（OR 5.22）。同じ手技でも肺炎を狙うと感度5%まで落ちる — 所見の性能は標的病態で決まる"},
-      {id:"bs",   cat:"聴診", nm:"呼吸音の減弱・消失", lp:4.1, ln:0.5,
-       cl:"fluid", tag:"der",
-       note:"Kalantri の感度57%・特異度86%から算出（4.07 / 0.50）。ガイド表t22 と同じ値"},
       {id:"ap",   cat:"打診", nm:"聴診打診法（胸骨を叩き背部で聴取）の濁音", lp:8.3, ln:1.0,
-       cl:"fluid", tag:"src",
-       note:"McGee EBM Box 29.2：胸水に対して感度58–96%・特異度85–95%、LR+ 8.3。LR− は有意でない。なお同じ手技でも「胸部X線異常全般」を狙うと陽性・陰性とも有意でなくなる"},
-      {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:5.3, ln:0.96, cl:"pleura", tag:"chk",
-       note:"感度が非常に低く、あれば強いがまず無い。Kalantri は胸膜摩擦音だけ陰性LRが他と異なると明記しており、陰性に意味はない。値そのものは一次未確認"}
+       ss:[0.83,0.90], cl:"fluid", tag:"src",
+       note:"McGee EBM Box 29.2 / 35.1：感度58–96%・特異度85–95%、LR+ 8.3。研究間のばらつきが大きく LR− は有意にならなかった。bit の計算には、報告された範囲の中で LR+ 8.3 と整合する組（感度83%・特異度90%）を使っている。同じ手技でも「胸部X線異常全般」を狙うと陽性・陰性とも有意でなくなる"},
+      {id:"exp",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
+       ci:[5.2,12.7], ss:[0.74,0.91], cl:"expand", tag:"src",
+       note:"Kalantri の感度74%・特異度91%。多変量でも独立の予測因子（OR 5.22）。同じ手技でも肺炎を狙うと感度5%まで落ちる — 所見の性能は標的病態で決まる"},
+      {id:"voc",  cat:"聴診", nm:"声音共鳴の低下（数を数えさせて背部で聴取）", lp:6.5, ln:0.3,
+       ss:[0.76,0.88], cl:"fluid", tag:"src",
+       note:"McGee EBM Box 30.1 / 35.1（Kalantri 感度76%・特異度88%）。声が伝わらなくなる側の所見。同じ胸水でもヤギ音のように異常に響く患者と、この聞こえなくなる患者がいて、どちらが出るかは液体量と圧縮された肺の状態で変わる"},
+      {id:"fre",  cat:"触診", nm:"触覚（声音）振盪の低下", lp:5.7, ln:0.2,
+       ss:[0.82,0.86], cl:"fluid", tag:"src",
+       note:"Kalantri 感度82%・特異度86%。除外に使える数少ない所見。なお Wong 2009 の統合値も LR− 0.21 (0.12–0.37) とほぼ同じ位置に来る"},
+      {id:"bs",   cat:"聴診", nm:"呼吸音の減弱・消失", lp:5.2, ln:0.1,
+       ss:[0.88,0.83], cl:"fluid", tag:"src",
+       note:"Kalantri 感度88%・特異度83%。以前このアプリは感度57%・特異度86%（LR+ 4.1）と書いていたが、原著にその組は無く誤りだった。ガイド表t22 も同じ誤りを持っており、あわせて訂正する"},
+      {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:4.8, ln:0.1,
+       ss:[0.89,0.81], cl:"fluid", tag:"src",
+       note:"Kalantri 感度89%・特異度81%。以前は Wong 2009 の統合値 8.7 を使っていたが、他の所見が Kalantri である以上、掛け合わせる相手として出所が揃わない。感度と特異度が逆に書かれていた（81/89）誤りもここで直した"},
+      {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:5.0, ln:1.0,
+       ss:[0.05,0.99], nsg:1, cl:"pleura", tag:"src",
+       note:"McGee は EBM Box 35.1 と 30.3 の二箇所で、この所見の尤度比を「有意でない」と判定している。感度5%・特異度99%から素直に計算すれば 5.0 前後になるが、278例中で陽性は数例しかなく、区間が1をまたぐ。特異度が高いだけでは使える所見にならない、という例として残してある"}
     ],
     cases:[
       {t:"64歳・労作時呼吸困難／外来", d:"事前20%。振盪低下なし、拡張左右差なし。", pre:0.20, set:{fre:-1, exp:-1}},
@@ -561,16 +566,17 @@ const DB = {
        ci:[1.7,4.2], cl:"airway", tag:"src",
        note:"原著は LR 2.7 (1.7–4.2)、かつ多変量モデルでは有意にならなかったと明記し、「喘鳴のような個別の徴候への依存を減らすべき」と結論している。喘鳴は気流閉塞の確定ではなく、鑑別の入口として使う"},
       {id:"pk",  cat:"問診", nm:"喫煙 40 pack-years 超", lp:8.3, ln:1.0, cl:"expose", tag:"src",
-       note:"原著の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。LR− は個別には報告がない"},
-      {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:2.8, ln:1.0, cl:"hyper", tag:"src",
-       note:"原著の多変量で有意だった4因子のひとつ。喉頭下降度（laryngeal descent）は別の指標で、そちらは LR 0.9–1.2 と役に立たない。混同しない"},
+       note:"Straus 2000 の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。感度・特異度が公表されていないため、この所見だけは bit を計算できない。Oshaug 2013 は同じ40 pack-years に感度19%・特異度95%・LR 4.1 (2.0–8.2) を報告しているが、対象が「すでに喘息か COPD と診断されている患者」で母集団が違うので、数値を借りてこない"},
+      {id:"lar", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:3.6, ln:0.7, ss:[0.36,0.90], cl:"hyper", tag:"src",
+       note:"Straus 2000 の感度36%・特異度90%（McGee EBM Box 33.1 経由）。同じ論文の多変量モデルからは LR 2.8 が報告されているが、このアプリは所見を掛け合わせたうえで κ による相関補正を別途かけるので、調整前の素の尤度比を使うほうが整合する。喉頭下降度（laryngeal descent）は別の指標で、そちらは LR 0.9–1.2 と役に立たない。混同しない"},
       {id:"hyp", cat:"打診", nm:"過共鳴", lp:9.5, ln:0.8, cl:"hyper", tag:"src",
-       note:"Oshaug 2013（プライマリケア375例）：感度20.8%・特異度97.8%。20.8÷2.2 ＝ 9.45 で原著の LR+ 9.5 と一致する。陰性側も同じ2値から (100−20.8)÷97.8 ＝ 0.81。原著は95%信頼区間を報告していないため区間は置かない。打診所見としては最も裏づけが確かなもの"},
+       ci:[3.7,23.7], ss:[0.208,0.978],
+       note:"Oshaug 2013（プライマリケア375例）Table 3：感度20.8%・特異度97.8%、LR+ 9.5 (3.7–23.7)。陰性側は同じ2値から (100−20.8)÷97.8 ＝ 0.81。区間の下限が 3.7 まで下がる点は見落とせない。なお McGee 6th ed の EBM Box 29.2 / 33.1 は、この Oshaug と Badgett 1993 を統合して LR+ 7.3 と印字している。7.3 も 9.5 もどちらも正しく、統合値を採るか原著単独値を採るかの違いである。ここでは対象疾患の定義（気管支拡張薬後 FEV1/FVC<0.7）が明確な Oshaug 単独値を採った"},
       {id:"swz", cat:"問診", nm:"患者本人が申告する喘鳴", lp:3.1, ln:0.58, cl:"airway", tag:"chk",
        note:"Straus 2000 の abstract に該当する値がない（abstract にあるのは「COPDの自己申告歴 LR 7.3」で別の項目）。一次未確認"},
       {id:"fet", cat:"聴診", nm:"強制呼気時間 8秒超（60歳以上）", lp:4.08, ln:1.0,
        ci:[2.54,6.79], cl:"airway", tag:"src",
-       note:"全体の最良カットオフは6秒。60歳以上では6〜8秒で LR 2.19、8秒超で 4.08 (2.54–6.79)。6秒以上が気流閉塞を疑う入口、8秒超がより強い支持。LR− は 0.2〜0.95 と幅が広すぎて単一の値を置けない"}
+       note:"この所見は「ある／ない」の2択ではなく3区分で報告されている。Schapira 1993 の60歳以上では 4〜6秒 で LR 0.42（むしろ気流閉塞を否定する方向）、6〜8秒 で 2.19、8秒超 で 4.08 (2.54–6.79)。つまり「8秒を超えなかった」は「3〜6秒だった」を意味しないので、単一の陰性尤度比が定義できない。McGee EBM Box 31.1 も同じ構造で、9秒以上 3.9／3〜9秒 有意でない／3秒未満 0.2 とし、陰性側の欄を空けている"}
     ],
     cases:[
       {t:"63歳・47年間 2箱/日の喫煙者（94 pack-years）", d:"事前25%。喘鳴を自覚、聴診でも喘鳴。", pre:0.25, set:{pk:1, swz:1, whz:1}},
@@ -621,17 +627,24 @@ const CLNAME = {
 /* LR− が未報告で、かつ感度・特異度の実測値も持っていない所見は、
    期待情報利得を計算できない。ゼロと表示すると「価値がない」と誤読されるため、
    算出不可であることを明示して別枠に置く。 */
-function eigUnknown(f){ return !f.ss && f.ln >= 0.999; }
+/* 二次資料が「有意でない（尤度比の95%信頼区間が1をまたぐ）」と判定した所見。
+   点推定は存在するが、確率を動かす根拠にはならないので 1.0 として扱う。
+   特異度99%でも症例数が足りなければ使えない、という実例を消さずに残すための仕組み。 */
+function lrOf(f, plus){ return f.nsg ? 1.0 : (plus ? f.lp : f.ln); }
+
+/* 期待情報利得を計算できない所見は別枠に置く。ゼロと表示すると「価値がない」と誤読されるため。
+   理由は2つある。(a) LR− が未報告で感度・特異度の実測値も無い。(b) 尤度比が有意でない。 */
+function eigUnknown(f){ return !!f.nsg || (!f.ss && f.ln >= 0.999); }
 
 /* applied findings -> ordered steps with correlation shrinkage */
 function steps(){
   const on = panel.filter(f=>st[f.id]);
   const w = {}; const out=[];
   // strongest first within each cluster keeps the shrinkage honest
-  on.slice().sort((a,b)=>Math.abs(Math.log(st[b.id]>0?b.lp:b.ln))-Math.abs(Math.log(st[a.id]>0?a.lp:a.ln)))
+  on.slice().sort((a,b)=>Math.abs(Math.log(lrOf(b,st[b.id]>0)))-Math.abs(Math.log(lrOf(a,st[a.id]>0))))
     .forEach(f=>{
       const n = w[f.cl]||0; w[f.cl]=n+1;
-      const raw = st[f.id]>0 ? f.lp : f.ln;
+      const raw = lrOf(f, st[f.id]>0);
       out.push({f, dir:st[f.id], raw, n, eff: Math.exp(Math.log(raw)*Math.pow(kap,n)), damp:n>0});
     });
   return out;
@@ -688,7 +701,7 @@ function reach(){
       pr *= plus ? pf : 1-pf;
       if(pr < 1e-12){ ok=false; break; }
       const k=w[f.cl]||0; w[f.cl]=k+1;
-      const raw = plus ? f.lp : f.ln;
+      const raw = lrOf(f, plus);
       z += Math.log(raw)*Math.pow(kap,k);
     }
     if(!ok) continue;
@@ -797,9 +810,13 @@ function drawFindings(){
       const lnP = f.ln>=0.999
         ? `LR− <span class="nolr">―</span><span class="ci noci">(報告なし)</span>`
         : `LR− ${lrf(f.ln)}${f.cin?`<span class="ci">(${lrf(f.cin[0])}–${lrf(f.cin[1])})</span>`:``}` + lb;
+      // 有意でないと判定された所見は、点推定を数字のまま見せると使えるように見えてしまう
+      const lrLine = f.nsg
+        ? `LR <span class="nolr">有意でない</span><span class="ci noci">(点推定 ${lrf(f.lp)}／確率は動かさない)</span>`
+        : `LR+ ${lrf(f.lp)}${ciP} ／ ${lnP}`;
       h+=`<div class="fnd"><div>
         <div class="nm">${esc(f.nm)}</div>
-        <div class="meta">${badge(f.tag)}LR+ ${lrf(f.lp)}${ciP} ／ ${lnP}　<span style="opacity:.85">${esc(f.note||"")}</span></div>
+        <div class="meta">${badge(f.tag)}${lrLine}　<span style="opacity:.85">${esc(f.note||"")}</span></div>
       </div>
       <div class="tri" role="group" aria-label="${esc(f.nm)}">
         <button class="pos" data-f="${f.id}" data-v="1"  aria-pressed="${v===1}">陽性</button>
@@ -863,11 +880,12 @@ function drawRank(){
       ${r.nd?`<div class="dampnote">⌁ 「${esc(r.twin)}」と同じ機序をもう一度測ることになるため、この利得は κ で割り引いてある</div>`:""}
     </li>`).join("") : (unk.length ? "" : `<li class="note">すべての所見をとり終えた。診察からこれ以上引き出せる情報はない。</li>`))
     + (unk.length ? `<li class="unkbox"><div class="unkttl">期待情報利得を算出できない所見（${unk.length}件）</div>
-      <div class="unknote">下の所見は<b>原著が陰性尤度比を報告しておらず、感度・特異度も公表されていない</b>ため、
-      「取ったらどれだけ迷いが減るか」を計算できない。<b>価値が無いという意味ではない</b>。
-      陽性のときの重みは LR+ のとおりで、下表のいくつかはこのパネルで最も強い所見である。</div>
+      <div class="unknote">下の所見は「取ったらどれだけ迷いが減るか」を計算できない。理由は2つある。
+      ひとつは<b>原著が陰性尤度比を報告しておらず、感度・特異度も公表されていない</b>場合で、これは
+      <b>価値が無いという意味ではない</b>。陽性のときの重みは LR+ のとおりである。
+      もうひとつは<b>尤度比そのものが有意でない</b>場合で、こちらは陽性でも陰性でも確率を動かさない。</div>
       <ul class="unklist">${unk.map(r=>`<li><span class="unknm">${esc(r.f.nm)}</span>
-        <span class="unklr">LR+ ${r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "");
+        <span class="unklr">${r.f.nsg?"有意でない":"LR+ "+r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "");
 }
 
 function drawVerdict(){
