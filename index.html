@@ -219,7 +219,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.7.0</span>
+    <span class="ver" id="verLabel">v2.8.0</span>
   </div>
 </header>
 
@@ -330,14 +330,24 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
           <tr><th>所見</th><th>LR+</th><th>LR−</th><th>期待情報利得</th></tr>
           <tr><td>ヤギ音</td><td>6.17</td><td>0.96</td><td>0.011 bit</td></tr>
           <tr><td>クラックル</td><td>2.00</td><td>0.80</td><td>0.024 bit</td></tr>
-          <tr><td>打診濁音（肺炎）</td><td>2.62</td><td>―</td><td>0.000 bit</td></tr>
+          <tr><td>打診濁音（肺炎）</td><td>2.62</td><td>―</td><td>0.019 bit</td></tr>
           <tr><td><b>バイタル異常</b></td><td><b>1.30</b></td><td><b>0.25</b></td><td><b>0.047 bit</b></td></tr>
         </table>
         <p><b>LR+ が最も大きいヤギ音が、最も価値が低い。LR+ 1.30 のバイタル異常が、その4倍の情報をもたらします。</b></p>
         <p>理由は感度です。ヤギ音の感度は約5%。<b>98% の確率で「陰性」になり</b>、その陰性は LR− 0.96 ＝ ほとんど確率を動かしません。
         つまり「たまに出れば強いが、ほとんど出ない」所見です。平均すれば、得られる情報はわずかになります。<br>
         逆にバイタル異常は LR+ こそ小さいものの、<b>陰性に意味があり（LR− 0.25）、しかも高い頻度で決着がつく</b>。だから平均では勝ちます。<br>
-        打診濁音が 0.000 bit なのは、LR− が報告されていない（＝陰性から何も学べない）ためです。</p>
+        打診濁音は陰性尤度比が報告されていない（表の「―」）ので、情報量は同じ研究が報告した
+        感度 18%・特異度 93% から出しています。</p>
+        <p class="note" style="font-size:11.5px">
+        <b>計算に使う数を混ぜない。</b> 期待情報利得は「陽性が出る頻度」と「陽性・陰性それぞれの事後確率」を
+        掛けて足したものです。この2つを別の出所から取ると、平均した事後確率が事前確率に戻らなくなります
+        ── つまり確率が湧きます。そこで、尤度比の組が検査として成り立つとき（LR+ &gt; 1 &gt; LR− &gt; 0）は
+        その組だけから感度・特異度を復元し、成り立たないときにかぎって同じ研究の感度・特異度を使う、
+        という一組の数字で通しています。LR− 1.0 は「報告なし」を表示するために置いた値であって、
+        LR+ &gt; 1 と同時には数学的に存在し得ません（LR− が 1 なら 1−感度 ＝ 特異度、すなわち LR+ も必ず 1）。
+        なお画面に出る「陽性なら○%／陰性なら○%」は、押したときの挙動と一致させるため、
+        今までどおり公表された尤度比から出しています。</p>
 
         <h4 class="eigh">4. 同じ所見でも、患者によって価値が変わる</h4>
         <p>同じヤギ音を、事前確率の違う3人に使ってみます。</p>
@@ -637,9 +647,54 @@ const CLNAME = {
    特異度99%でも症例数が足りなければ使えない、という実例を消さずに残すための仕組み。 */
 function lrOf(f, plus){ return f.nsg ? 1.0 : (plus ? f.lp : f.ln); }
 
-/* 期待情報利得を計算できない所見は別枠に置く。ゼロと表示すると「価値がない」と誤読されるため。
-   理由は2つある。(a) LR− が未報告で感度・特異度の実測値も無い。(b) 尤度比が有意でない。 */
-function eigUnknown(f){ return !!f.nsg || (!f.ss && f.ln >= 0.999); }
+/* 情報量の計算に使う「一組」を返す（2026-07-27）。返すのは互いに整合した LR+/LR−/感度/特異度。
+
+   なぜ一組でなければならないか:
+     期待情報利得は「陽性が出る頻度」と「陽性・陰性それぞれの事後確率」を掛けて足す。
+     この2つを別の出所から取ると、平均した事後確率が事前確率に戻らない ── 確率が湧く。
+     実際、30所見のうち15件でこれが起きており、8件では情報利得が負になっていた
+     （理論上、期待情報利得は必ず 0 以上）。負を Math.max(eig,0) で潰していたので表に出ずに済んでいた。
+
+   どちらの組を使うか:
+     (1) 尤度比の組が検査として成り立つなら（LR+ > 1 > LR− > 0）、その組だけから感度・特異度を
+         復元する。実測の ss があっても使わない。ss と公表尤度比は出所が違う（片方が統合値）
+         ことがあり、混ぜると上の破れが生じる。
+     (2) 成り立たないときだけ、同じ研究が報告した感度・特異度を使う。LR− = 1.0 は
+         「報告なし／有意でない」を表示するために置いた値で、LR+ > 1 と同時には数学的に
+         存在し得ない（LR− = 1 なら 1−感度 = 特異度、すなわち LR+ も必ず 1）。
+     (3) どちらも無ければ算出不可。0 と書くと「価値がない」と誤読される。
+
+   表示する着地点（陽性なら○%／陰性なら○%）は今までどおり lrOf から出す。
+   そちらは「押したときに実際どう動くか」の予告なので、公表尤度比と一致していなければならない。 */
+function eigInputs(f){
+  if(f.nsg) return null;
+  if(f.lp > 1 && f.ln > 0 && f.ln < 1){
+    const spec=(f.lp-1)/(f.lp-f.ln);
+    return {lp:f.lp, ln:f.ln, sens:f.lp*(1-spec), spec, src:"尤度比の組"};
+  }
+  if(f.ss && f.ss[0]>0 && f.ss[0]<1 && f.ss[1]>0 && f.ss[1]<1){
+    const sens=f.ss[0], spec=f.ss[1];
+    return {lp:sens/(1-spec), ln:(1-sens)/spec, sens, spec, src:"感度・特異度"};
+  }
+  return null;
+}
+
+/* 相関補正のあとも整合を保つ。減衰は【一組にしてから】両方に掛け、
+   感度・特異度は減衰後の組から derive し直す。減衰後の f から作ると
+   （shrink が ss を落とすので）LR− 1.0 の所見が算出不可に化けてしまう。 */
+function eigInputsDamped(f0, n){
+  const m = eigInputs(f0);
+  if(!m) return null;
+  if(!n) return m;
+  const k = Math.pow(kap, n);
+  const lp = Math.exp(Math.log(m.lp)*k), ln = Math.exp(Math.log(m.ln)*k);
+  if(!(lp > 1 && ln > 0 && ln < 1)) return null;
+  const spec=(lp-1)/(lp-ln);
+  return {lp, ln, sens:lp*(1-spec), spec, src:m.src};
+}
+
+/* 期待情報利得を計算できない所見は別枠に置く。ゼロと表示すると「価値がない」と誤読されるため。 */
+function eigUnknown(f){ return eigInputs(f) === null; }
 
 /* applied findings -> ordered steps with correlation shrinkage */
 function steps(){
@@ -867,24 +922,32 @@ function drawRank(){
        すでに相関所見を取っていても、この所見が陽性になる確率そのものは変わらない。 */
     const {sens,spec}=ss(f0);
     const pp = clamp(p*sens + (1-p)*(1-spec), 1e-9, 1-1e-9);
-    /* 事後確率は、このアプリが実際に掛ける尤度比から出す。
+    /* 画面に出す着地点は、このアプリが実際に掛ける尤度比から出す。
        ここを感度・特異度からのベイズ更新で計算すると、陰性尤度比が未報告（1.0）の所見で
        「陰性なら4.5%」と予告しておきながら、実際に陰性を押すと確率が動かない、という
        食い違いが起きる。予告と挙動は同じ数から出さなければならない。 */
     const z0 = L(p);
     const a = IL(z0 + Math.log(lrOf(f,true)));
     const b = IL(z0 + Math.log(lrOf(f,false)));
-    const eig = H(p) - (pp*H(a) + (1-pp)*H(b));
+    /* 情報量は【一組】から出す。予告に使う数と混ぜると確率の帳尻が合わなくなる（eigInputs 参照）。
+       だから頻度も事後確率も、ここでは m だけから作る。 */
+    const m = eigInputsDamped(f0, used[f0.cl]||0);
+    let eig = null;
+    if(m){
+      const ppE = clamp(p*m.sens + (1-p)*(1-m.spec), 1e-9, 1-1e-9);
+      const aE = IL(z0 + Math.log(m.lp)), bE = IL(z0 + Math.log(m.ln));
+      eig = H(p) - (ppE*H(aE) + (1-ppE)*H(bE));
+    }
     const zc = (zoneOf(a)!==zoneOf(p) ? pp : 0) + (zoneOf(b)!==zoneOf(p) ? 1-pp : 0);
     const nd = used[f0.cl]||0;
     // 同じクラスタで既に取った所見の名前（なぜ割り引かれるのかを読者に示すため）
     const twin = nd ? steps().filter(s=>s.f.cl===f0.cl).map(s=>s.f.nm)[0] : "";
-    return {f, eig:Math.max(eig,0), a, b, pp, zc, nd, twin};
-  }).sort((x,y)=>y.eig-x.eig);
+    return {f, f0, eig, a, b, pp, zc, nd, twin};
+  }).sort((x,y)=>(y.eig??-1)-(x.eig??-1));
   /* 期待情報利得を計算できない所見は、順位に混ぜずに別枠へ出す。
      ゼロとして最下位に並べると「価値がない」と読まれるが、実際は「まだ分からない」である。 */
-  const unk = rows.filter(r=>eigUnknown(r.f));
-  rows = rows.filter(r=>!eigUnknown(r.f));
+  const unk = rows.filter(r=>r.eig === null);
+  rows = rows.filter(r=>r.eig !== null);
   const mx = rows.length? Math.max(...rows.map(r=>r.eig), 1e-6) : 1;
   document.getElementById("rank").innerHTML = (rows.length ? rows.map(r=>`
     <li><div class="hd"><span class="nm">${esc(r.f.nm)}</span><span class="bits">${r.eig.toFixed(3)} bit</span></div>
