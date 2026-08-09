@@ -223,7 +223,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.9.0</span>
+    <span class="ver" id="verLabel">v2.9.1</span>
   </div>
 </header>
 
@@ -1181,13 +1181,18 @@ function validatePersonalPanel(text, dbKeys){
     n:{present:o.n.present, absent:o.n.absent}, findings:fs}};
 }
 /* 検証済みの1件をパネルの所見に組み立てる。
-   ・cl は "mes:"+id の単独クラスタ ── 契約に機序クラスタが無いため、組み込み所見との
-     相関（同じ手技の文献値と実測値を両方押した場合の κ 減衰）は v1 では結ばない。
+   ・cl は対応する組み込み所見から【継承する】。同じ手技の文献値と実測値は同じ一回の観察なので、
+     別クラスタにすると κ 減衰が効かず、両方を押したときに同じ観察を二度数える（v2.9.0 の不具合）。
+     契約（personal-panel JSON）に機序クラスタが無くても、クラスタ表はアプリ側にあるので引ける。
+     対応する組み込み所見が無い実測（自分だけの所見）のときだけ、従来どおり単独クラスタにする。
    ・検査として成り立たない実測は nsg（確率を動かさない）にし、nsgLabel で
      「実測では判別できず」と表示する ── 拒否せず、教材として正直に見せる。 */
 function buildMesFinding(g, meta){
+  /* 実測の id は検証時に "m_" を冠してある（validatePersonalPanel）。外すと組み込みの id に戻る */
+  const baseId = g.id.replace(/^m_/, "");
+  const base = panel.find(f => f.id===baseId && f.tag!=="mes");
   const f = {id:g.id, cat:g.cat, nm:g.nm, lp:g.lp, ln:g.ln, ss:[g.sens,g.spec],
-    cl:"mes:"+g.id, tag:"mes",
+    cl:(base && base.cl) ? base.cl : "mes:"+g.id, tag:"mes",
     note:"答え合わせノートの実測（病態あり"+meta.n.present+"例・なし"+meta.n.absent
         +"例、TP"+g.counts.tp+"/FP"+g.counts.fp+"/FN"+g.counts.fn+"/TN"+g.counts.tn
         +(g.corrected?"・ゼロセル補正あり":"")+"）"};
