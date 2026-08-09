@@ -81,6 +81,8 @@ svg{display:block;width:100%;height:auto}
 .b-der{color:var(--fall);border-color:var(--fall)}
 .b-est{color:var(--flag);border-color:var(--flag)}
 .b-chk{color:var(--rise);border-color:var(--rise);background:#F7E9EB}
+/* 実測 = 答え合わせノートから取り込んだ、使用者自身の記録による値。自作（b-chk 流用）とは別の色調。 */
+.b-mes{color:#5B3A8E;border-color:#5B3A8E;background:#F0EBF8}
 .tri{display:flex;border:1px solid var(--rule)}
 .tri button{border:0;background:transparent;font-family:var(--mono);font-size:11px;padding:5px 9px;cursor:pointer;color:var(--ink-2);border-right:1px solid var(--rule-2)}
 /* 指で操作する端末では 44px 角を確保する（実測 41x27px だった）。 */
@@ -174,6 +176,8 @@ summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1e
 .btn.ghost{border-color:var(--rule);color:var(--ink-2)}
 .editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px}
 .editor input,.editor select{font-family:var(--sans);font-size:12px;padding:6px;border:1px solid var(--rule);background:#fff;color:var(--ink);width:100%}
+.impwrap{border-top:1px dotted var(--rule);margin-top:12px;padding-top:10px}
+.impwrap textarea{width:100%;font-family:var(--mono);font-size:11px;line-height:1.5;padding:6px;border:1px solid var(--rule);background:#fff;color:var(--ink);resize:vertical}
 .case{border:1px solid var(--rule);padding:9px 11px;margin-bottom:8px;cursor:pointer;background:transparent;text-align:left;width:100%;font-family:var(--sans)}
 .case:hover{background:#EEF3F5}
 .case b{font-family:var(--serif);font-size:13.5px;display:block}
@@ -219,7 +223,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.8.1</span>
+    <span class="ver" id="verLabel">v2.9.0</span>
   </div>
 </header>
 
@@ -277,6 +281,12 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
         <button class="btn ghost" id="eReset">初期値に戻す</button>
       </div>
       <div class="note" style="margin-top:8px">追加した所見は <span class="badge b-chk">自作</span> として扱われ、情報利得の計算にも即座に入る。手元のMcGee／JAMA Rational Clinical Examination の値に総入れ替えして、自分の教育用パネルを作れる。</div>
+      <div class="impwrap">
+        <div class="note" style="margin-bottom:6px"><b>答え合わせノートの書き出しを貼り付ける</b> ── あなた自身の記録から計算された感度・特異度・尤度比が、<span class="badge b-mes">実測</span> として文献値と<b>並記</b>されます（置き換えません）。</div>
+        <textarea id="impTxt" rows="4" aria-label="答え合わせノートの書き出しJSON" placeholder='{"app":"kotaeawase-note","type":"personal-panel","version":1, ...} をここに貼り付ける'></textarea>
+        <div class="btnrow"><button class="btn" id="impBtn">実測パネルを取り込む</button></div>
+        <div class="note" style="margin-top:6px">貼り付けた実測パネルは、この端末の中でのみ使われます。送信されず、URLにも乗りません。保存もされないため、タブの切り替えや再読み込みで消えます ── 使うたびに貼り直してください。</div>
+      </div>
     </details>
   </section>
 
@@ -425,7 +435,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     尤度比の数値そのものは各原著論文に帰属します。改変・再配布の際は出典欄を残してください。<br>
     <b>不具合・数値の指摘</b>：<a href="https://github.com/torukubota2023/bedside-bayes/issues">GitHub Issues</a> へお願いします。尤度比の誤りのご指摘は特に歓迎します。
   </div>
-  <b>バッジの意味</b> — <span class="badge b-src">出典</span>論文の報告値そのまま／<span class="badge b-der">導出</span>報告された感度・特異度から計算／<span class="badge b-est">推定</span>報告値がなく、所見の性質から置いた仮値／<span class="badge b-chk">要確認</span>広く流通しているが一次文献を確認しきれていない値。<br>
+  <b>バッジの意味</b> — <span class="badge b-src">出典</span>論文の報告値そのまま／<span class="badge b-der">導出</span>報告された感度・特異度から計算／<span class="badge b-est">推定</span>報告値がなく、所見の性質から置いた仮値／<span class="badge b-chk">要確認</span>広く流通しているが一次文献を確認しきれていない値／<span class="badge b-mes">実測</span>答え合わせノートから取り込んだ、使用者自身の記録による値（端末内のみ・共有リンクに乗らない）。<br>
   推定値・要確認値は<b>教材としてそのまま使わず</b>、手元の一次文献で差し替えること。エディタで上書きできる。<br>
   臨床判断の代替ではなく、確率的推論の可視化のための教育ツール。単一施設・単一集団に由来するLRは外挿で容易に壊れる。
 </footer>
@@ -854,7 +864,7 @@ function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").rep
                                  .replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 
 /* ----------------------------------------------------------------- views */
-const TAGS = {src:["b-src","出典"], der:["b-der","導出"], est:["b-est","推定"], chk:["b-chk","要確認"], own:["b-chk","自作"]};
+const TAGS = {src:["b-src","出典"], der:["b-der","導出"], est:["b-est","推定"], chk:["b-chk","要確認"], own:["b-chk","自作"], mes:["b-mes","実測"]};
 function badge(t){ const b=TAGS[t]||TAGS.est; return `<span class="badge ${b[0]}">${b[1]}</span>`; }
 
 function drawFindings(){
@@ -872,8 +882,11 @@ function drawFindings(){
         ? `LR− <span class="nolr">―</span><span class="ci noci">(報告なし)</span>`
         : `LR− ${lrf(f.ln)}${f.cin?`<span class="ci">(${lrf(f.cin[0])}–${lrf(f.cin[1])})</span>`:``}` + lb;
       // 有意でないと判定された所見は、点推定を数字のまま見せると使えるように見えてしまう
+      // nsgLabel は実測パネル用（「実測では判別できず」）。判別しなかった実測は LR+/LR− の両方を見せる
       const lrLine = f.nsg
-        ? `LR <span class="nolr">有意でない</span><span class="ci noci">(点推定 ${lrf(f.lp)}／確率は動かさない)</span>`
+        ? (f.nsgLabel
+          ? `LR <span class="nolr">${esc(f.nsgLabel)}</span><span class="ci noci">(LR+ ${lrf(f.lp)}／LR− ${lrf(f.ln)}／確率は動かさない)</span>`
+          : `LR <span class="nolr">有意でない</span><span class="ci noci">(点推定 ${lrf(f.lp)}／確率は動かさない)</span>`)
         : `LR+ ${lrf(f.lp)}${ciP} ／ ${lnP}`;
       h+=`<div class="fnd"><div>
         <div class="nm">${esc(f.nm)}</div>
@@ -959,9 +972,12 @@ function drawRank(){
       <div class="unknote">下の所見は「取ったらどれだけ迷いが減るか」を計算できない。理由は2つある。
       ひとつは<b>原著が陰性尤度比を報告しておらず、感度・特異度も公表されていない</b>場合で、これは
       <b>価値が無いという意味ではない</b>。陽性のときの重みは LR+ のとおりである。
-      もうひとつは<b>尤度比そのものが有意でない</b>場合で、こちらは陽性でも陰性でも確率を動かさない。</div>
+      もうひとつは<b>尤度比そのものが有意でない</b>場合で、こちらは陽性でも陰性でも確率を動かさない。${
+        unk.some(r=>r.f.tag==="mes")
+        ? `また<b>「実測では判別できず」</b>は、答え合わせノートから取り込んだあなたの実測で、この所見が病態のある人と無い人を実質的に分けられなかった（尤度比が 1 から離れなかった）ことを示す。確率を動かす根拠にはならないが、その記録自体が較正の教材である。`
+        : ""}</div>
       <ul class="unklist">${unk.map(r=>`<li><span class="unknm">${esc(r.f.nm)}</span>
-        <span class="unklr">${r.f.nsg?"有意でない":"LR+ "+r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "");
+        <span class="unklr">${r.f.nsg?esc(r.f.nsgLabel||"有意でない"):"LR+ "+r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "");
 }
 
 function drawVerdict(){
@@ -1067,17 +1083,20 @@ function render(){
 /* ------------------------------------------------------------------ wire */
 document.getElementById("tabs").innerHTML = Object.keys(DB).map(k=>
   `<button data-k="${k}" aria-pressed="${k===key}">${DB[k].short}</button>`).join("");
-document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
-  key=b.dataset.k; panel=clone(DB[key].f); st={}; heckState={};
+/* タブ切替の本体。取り込み時の自動切替（貼った実測パネルの病態が現在タブと違う場合）でも使う。
+   パネルを DB から作り直すので、取り込んだ実測（mes）はここで消える ── 仕様（メモリ保持のみ）。 */
+function setDisease(k){
+  key=k; panel=clone(DB[key].f); st={}; heckState={};
   pre=DB[key].pre; tTest=DB[key].tTest; tTreat=DB[key].tTreat;
   document.getElementById("pre").value=L(pre);
   document.getElementById("tTest").value=tTest;
   document.getElementById("tTreat").value=tTreat;
-  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.k===key));
   document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</li>`).join("")
     + `<li style="color:var(--ink-3)">状況設定：${esc(DB[key].ctx)}</li>`;
-  drawCases(); render();
-});
+  drawCases();
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ setDisease(b.dataset.k); render(); });
 document.getElementById("pre").oninput=e=>{ pre=clamp(IL(+e.target.value),1e-4,.999); render(); };
 document.getElementById("tTest").oninput=e=>{ tTest=+e.target.value; if(tTest>=tTreat){tTreat=tTest+1;document.getElementById("tTreat").value=tTreat;} render(); };
 document.getElementById("tTreat").oninput=e=>{ tTreat=+e.target.value; if(tTreat<=tTest){tTest=tTreat-1;document.getElementById("tTest").value=tTest;} render(); };
@@ -1099,15 +1118,144 @@ document.getElementById("eExport").onclick=()=>{
 };
 document.getElementById("eReset").onclick=()=>{ panel=clone(DB[key].f); st={}; render(); };
 
+/* ------------------- 答え合わせノートの実測パネル取り込み（personal-panel v1） ----
+   契約は答え合わせノート側と共通（README「実測パネルの取り込み」参照）。
+   取り込んだ実測（tag:"mes"）はメモリ内のみで扱う ── URL・localStorage・サーバの
+   どこにも出さない。個人の実測値が共有リンクやブラウザ履歴から漏れないようにするため。
+   下のマーカー区間は tests/personal_panel_import.test.mjs が切り出して node で検証する。
+   マーカーを消さない・区間内に DOM 依存を書かない。 */
+/* PPIMPORT:BEGIN */
+function validatePersonalPanel(text, dbKeys){
+  const bad = r => ({ok:false, reason:r});
+  let o;
+  try{ o = JSON.parse(text); }catch(e){ return bad("JSONとして読めない"); }
+  if(!o || typeof o!=="object" || Array.isArray(o)) return bad("JSONの中身がオブジェクトでない");
+  if(o.app!=="kotaeawase-note") return bad('app が "kotaeawase-note" でない');
+  if(o.type!=="personal-panel") return bad('type が "personal-panel" でない');
+  if(o.version!==1) return bad("version が 1 でない（この版が読めるのは v1 だけ）");
+  if(!o.disease || typeof o.disease!=="object") return bad("disease がない");
+  const bk = o.disease.bedsideKey;
+  if(typeof bk!=="string" || dbKeys.indexOf(bk)<0)
+    return bad("対応する病態がこのアプリにない（bedsideKey: "+bk+"）");
+  if(!o.n || !Number.isInteger(o.n.present) || !Number.isInteger(o.n.absent)
+     || o.n.present<1 || o.n.absent<1) return bad("n.present / n.absent が正の整数でない");
+  if(!Array.isArray(o.findings) || o.findings.length===0) return bad("findings が空");
+  const seen = {}, fs = [];
+  for(let i=0;i<o.findings.length;i++){
+    const g = o.findings[i], at = "findings["+(i+1)+"件目]";
+    if(!g || typeof g!=="object") return bad(at+" がオブジェクトでない");
+    if(typeof g.id!=="string" || !g.id.trim()) return bad(at+" に id がない");
+    if(seen[g.id]) return bad("所見 id が重複している（"+g.id+"）");
+    seen[g.id]=1;
+    if(typeof g.nm!=="string" || !g.nm.trim()) return bad(at+" に所見名（nm）がない");
+    for(const kf of ["lp","ln","sens","spec"])
+      if(!Number.isFinite(g[kf])) return bad(at+"（"+g.nm+"）の "+kf+" が有限の数でない");
+    if(!(g.sens>0 && g.sens<1)) return bad(at+"（"+g.nm+"）: 感度は 0 と 1 の間が必要（"+g.sens+"）");
+    if(!(g.spec>0 && g.spec<1)) return bad(at+"（"+g.nm+"）: 特異度は 0 と 1 の間が必要（"+g.spec+"）");
+    if(!(g.lp>0) || !(g.ln>0)) return bad(at+"（"+g.nm+"）: lp / ln は正の数が必要");
+    /* 一組の規律：lp/ln と sens/spec は同じ2×2表から出ていなければならない（±1%）。
+       出所が混ざった組を通すと、表示頻度と期待情報利得の頻度が食い違い、確率が湧く。 */
+    const lpRef = g.sens/(1-g.spec), lnRef = (1-g.sens)/g.spec;
+    if(Math.abs(g.lp-lpRef)/lpRef > 0.01)
+      return bad(at+"（"+g.nm+"）: lp "+g.lp+" が sens/spec からの値 "+lpRef.toFixed(3)+" と±1%で整合しない（出所が混ざっている）");
+    if(Math.abs(g.ln-lnRef)/lnRef > 0.01)
+      return bad(at+"（"+g.nm+"）: ln "+g.ln+" が sens/spec からの値 "+lnRef.toFixed(3)+" と±1%で整合しない（出所が混ざっている）");
+    const c = g.counts;
+    if(!c || typeof c!=="object" || ![c.tp,c.fp,c.fn,c.tn].every(v=>Number.isInteger(v) && v>=0))
+      return bad(at+"（"+g.nm+"）の counts（tp/fp/fn/tn）が 0 以上の整数でない");
+    const ivOK = iv => Array.isArray(iv) && iv.length===2
+      && Number.isFinite(iv[0]) && Number.isFinite(iv[1]) && iv[0]>0 && iv[0]<=iv[1];
+    if(g.ci!==undefined && !ivOK(g.ci)) return bad(at+"（"+g.nm+"）の ci が [下限,上限] の形でない");
+    if(g.cin!==undefined && !ivOK(g.cin)) return bad(at+"（"+g.nm+"）の cin が [下限,上限] の形でない");
+    /* 検査として成り立つか（LR+ > 1 > LR−）。ln の上限 0.999 は表示側の
+       「LR− ―（報告なし）」判定（f.ln>=0.999）と同じ閾値 ── これを越える組は
+       整合性検証により lp も 1 とほぼ変わらず、実質的に無情報である。 */
+    const viable = g.lp>1 && g.ln>0 && g.ln<0.999;
+    fs.push({id:"m_"+g.id.trim(), cat:(typeof g.cat==="string" && g.cat.trim()) ? g.cat.trim() : "実測",
+      nm: g.nm.indexOf("（実測）")>=0 ? g.nm : g.nm+"（実測）",
+      lp:g.lp, ln:g.ln, sens:g.sens, spec:g.spec,
+      ci:g.ci, cin:g.cin, counts:{tp:c.tp, fp:c.fp, fn:c.fn, tn:c.tn},
+      corrected:g.corrected===true, viable});
+  }
+  return {ok:true, data:{bedsideKey:bk, label:String(o.disease.label||""),
+    n:{present:o.n.present, absent:o.n.absent}, findings:fs}};
+}
+/* 検証済みの1件をパネルの所見に組み立てる。
+   ・cl は "mes:"+id の単独クラスタ ── 契約に機序クラスタが無いため、組み込み所見との
+     相関（同じ手技の文献値と実測値を両方押した場合の κ 減衰）は v1 では結ばない。
+   ・検査として成り立たない実測は nsg（確率を動かさない）にし、nsgLabel で
+     「実測では判別できず」と表示する ── 拒否せず、教材として正直に見せる。 */
+function buildMesFinding(g, meta){
+  const f = {id:g.id, cat:g.cat, nm:g.nm, lp:g.lp, ln:g.ln, ss:[g.sens,g.spec],
+    cl:"mes:"+g.id, tag:"mes",
+    note:"答え合わせノートの実測（病態あり"+meta.n.present+"例・なし"+meta.n.absent
+        +"例、TP"+g.counts.tp+"/FP"+g.counts.fp+"/FN"+g.counts.fn+"/TN"+g.counts.tn
+        +(g.corrected?"・ゼロセル補正あり":"")+"）"};
+  if(g.ci) f.ci=g.ci;
+  if(g.cin) f.cin=g.cin;
+  if(!g.viable){ f.nsg=1; f.nsgLabel="実測では判別できず"; }
+  return f;
+}
+/* PPIMPORT:END */
+document.getElementById("impBtn").onclick=()=>{
+  const txt=document.getElementById("impTxt").value.trim();
+  if(!txt){ toast("答え合わせノートの書き出しJSONを貼り付けてください。"); return; }
+  const r = validatePersonalPanel(txt, Object.keys(DB));
+  if(!r.ok){ toast("取り込めません ── "+r.reason); return; }
+  const switched = r.data.bedsideKey!==key;
+  if(switched) setDisease(r.data.bedsideKey);
+  /* 貼り直し＝置き換え。前回の実測パネルと、その所見の状態を除いてから足す */
+  panel.filter(f=>f.tag==="mes").forEach(f=>delete st[f.id]);
+  panel = panel.filter(f=>f.tag!=="mes");
+  r.data.findings.forEach(g=>panel.push(buildMesFinding(g, r.data)));
+  document.getElementById("impTxt").value="";
+  render();
+  toast((switched ? DB[key].short+"タブへ切り替えました。" : "")
+    +"実測パネルを取り込みました（"+r.data.findings.length+"件）。端末内のみで使われ、共有リンクには含まれません。タブ切替や再読み込みで消えます。");
+};
+
 /* ------------------------------------------------- shareable URL state */
 function encodeState(){
-  const on = Object.keys(st).filter(k=>st[k]).map(k=>k+":"+st[k]).join(",");
-  const custom = panel.filter(f=>f.tag==="own").map(f=>[f.nm,f.lp,f.ln,f.cl,f.cat]);
+  /* 実測（tag:"mes"）は URL に一切乗せない ── 名前・数値・オン/オフのすべて。
+     個人の実測値が共有リンク・ブラウザ履歴・タブ同期の経路で端末外へ漏れるのを防ぐ。 */
+  const mes = new Set(panel.filter(f=>f.tag==="mes").map(f=>f.id));
+  const on = Object.keys(st).filter(k=>st[k] && !mes.has(k)).map(k=>k+":"+st[k]).join(",");
+  /* 自作所見は id（6要素目）も保存する。以前は復元側が "u"+連番 で振り直しており、
+     元の id を指す f= が空振りして、自作所見のオン/オフが共有リンクで再現されなかった。 */
+  const custom = panel.filter(f=>f.tag==="own").map(f=>[f.nm,f.lp,f.ln,f.cl,f.cat,f.id]);
   const q = ["d="+key, "p="+pre.toFixed(4), "t="+tTest, "r="+tTreat, "k="+kap];
   if(on) q.push("f="+on);
   if(custom.length) q.push("c="+encodeURIComponent(JSON.stringify(custom)));
   return "#"+q.join("&");
 }
+/* 共有リンク c= の自作所見。所見エディタと同じ検証（LR+ > 1、0 < LR− < 1）を通し、
+   不合格の要素は捨てて console.warn する ── 以前は無検証で適用しており、細工した
+   リンクで NaN や逆向きの LR を計算に混ぜられた。
+   各要素は [nm, lp, ln, cl, cat, id?]。id の無い旧リンクは従来どおり "u"+連番。
+   PPHASH:BEGIN */
+function parseCustomParam(raw){
+  let arr;
+  try{ arr = JSON.parse(decodeURIComponent(raw)); }
+  catch(e){ console.warn("共有リンクの c= を読めない:", e); return []; }
+  if(!Array.isArray(arr)){ console.warn("共有リンクの c= が配列でない"); return []; }
+  const out=[], used={};
+  arr.forEach((a,i)=>{
+    const warn = m => console.warn("共有リンクの自作所見を1件捨てた（"+m+"）:", a);
+    if(!Array.isArray(a)){ warn("形式不正"); return; }
+    const nm=String(a[0]==null?"":a[0]).trim(), lp=parseFloat(a[1]), ln=parseFloat(a[2]);
+    if(!nm){ warn("所見名なし"); return; }
+    if(!Number.isFinite(lp) || !(lp>1)){ warn("LR+ は 1 より大きい有限の数が必要"); return; }
+    if(!Number.isFinite(ln) || !(ln>0 && ln<1)){ warn("LR− は 0 と 1 の間が必要"); return; }
+    /* id は自作の採番形式（u+数字）だけを受け付ける。組み込み所見の id を名乗る細工を防ぐ */
+    let id = (typeof a[5]==="string" && /^u\d+$/.test(a[5])) ? a[5] : "u"+i;
+    if(used[id]) id = id+"_"+i;
+    used[id]=1;
+    out.push({id, cat:String(a[4]==null?"":a[4]).trim()||"自作", nm, lp, ln,
+      cl:String(a[3]==null?"":a[3]).trim()||id, tag:"own", note:"共有リンクに含まれる自作の値"});
+  });
+  return out;
+}
+/* PPHASH:END */
 function syncURL(){
   try{ history.replaceState(null,"",encodeState()); }catch(e){}
 }
@@ -1126,9 +1274,10 @@ function applyHash(){
   tTreat=clamp(num(q.r,DB[key].tTreat), 30,  99);
   if(tTest>=tTreat){ tTest=DB[key].tTest; tTreat=DB[key].tTreat; }
   kap=clamp(num(q.k,0.75),0,1);
-  if(q.c){ try{ JSON.parse(decodeURIComponent(q.c)).forEach((a,i)=>
-      panel.push({id:"u"+i, cat:a[4]||"自作", nm:a[0], lp:+a[1], ln:+a[2], cl:a[3]||("u"+i), tag:"own", note:"共有リンクに含まれる自作の値"})); }catch(e){} }
-  if(q.f) q.f.split(",").forEach(kv=>{const[a,b]=kv.split(":"); if(panel.some(f=>f.id===a)) st[a]=+b;});
+  if(q.c) parseCustomParam(q.c).forEach(f=>panel.push(f));
+  /* f= の値は 1（陽性）か -1（陰性）だけを受け付ける（それ以外は無視） */
+  if(q.f) q.f.split(",").forEach(kv=>{const[a,b]=kv.split(":"); const v=+b;
+    if((v===1||v===-1) && panel.some(f=>f.id===a)) st[a]=v;});
   return true;
 }
 function toast(msg){
@@ -1139,7 +1288,10 @@ function toast(msg){
 document.getElementById("bShare").onclick=async()=>{
   syncURL();
   const url=location.href;
-  try{ await navigator.clipboard.writeText(url); toast("リンクをコピーしました。設定と所見がそのまま再現されます。"); }
+  const msg = panel.some(f=>f.tag==="mes")
+    ? "リンクをコピーしました。実測パネルはリンクに含まれません（受け取った側では貼り直しが必要です）。"
+    : "リンクをコピーしました。設定と所見がそのまま再現されます。";
+  try{ await navigator.clipboard.writeText(url); toast(msg); }
   catch(e){ prompt("このリンクをコピーしてください", url); }
 };
 document.getElementById("bPrint").onclick=()=>window.print();
