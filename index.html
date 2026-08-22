@@ -75,8 +75,9 @@ svg{display:block;width:100%;height:auto}
 .cat:first-of-type{padding-top:0}
 .fnd{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dotted var(--rule-2)}
 .fnd .nm{font-size:13.5px;line-height:1.45}
-.fnd .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:1px}
-.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:1px 4px;border:1px solid;margin-right:5px;vertical-align:1px}
+/* meta 10.5px / badge 9px / ci 10px はスマホ実用下限（11px）未満だった。文言は変えず大きさだけ上げる。 */
+.fnd .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:1px}
+.badge{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:1px 4px;border:1px solid;margin-right:5px;vertical-align:1px}
 .b-src{color:#1F5C3A;border-color:#1F5C3A}
 .b-der{color:var(--fall);border-color:var(--fall)}
 .b-est{color:var(--flag);border-color:var(--flag)}
@@ -145,7 +146,7 @@ svg{display:block;width:100%;height:auto}
 .mech .mfoot{padding:8px 12px;background:#F4F7F9;border-top:1px solid var(--rule-2);font-size:11.5px;color:var(--ink-2);line-height:1.75}
 .mech .mfoot b{color:var(--ink)}
 /* 信頼区間まわり。値の確かさの差が一目で分かるようにする。 */
-.ci{font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-left:2px}
+.ci{font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-left:2px}
 .noci{color:var(--ink-3);font-style:normal}
 .nolr{color:var(--ink-3);font-weight:600}
 .cirow{font-family:var(--sans);font-size:12px;color:var(--ink-2);margin-top:8px;
@@ -187,13 +188,31 @@ summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1e
 .bar-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0}
 .bar-tools .btn{font-size:12px}
 .bar-tools .ver{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
+/* ホームバーのある iPhone（standalone PWA）でトーストが隠れないよう safe-area を加算する。通常ブラウザでは 0 で従来どおり。 */
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:#fff;
   font-size:13px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
 .toast.on{opacity:1}
 .legal{font-size:12px;line-height:1.85;color:var(--ink-2)}
 .legal b{color:var(--ink)}
 .legal ul{padding-left:1.2em;margin:6px 0}
 noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--rise);background:#fff}
+/* ── iPhone quick win（2026-08-22 監査対応）。基底規則より後ろに置く（後勝ちで効かせる）── */
+/* 指で操作する端末: 全ボタン・summary・チェック行を 44px 標的に。入力欄は 16px 未満だと iOS が自動ズームする。 */
+@media(pointer:coarse){
+  .btn{min-height:44px;padding:11px 14px}
+  .tabs button{min-height:44px}
+  summary{min-height:44px;padding-top:13px;padding-bottom:13px}
+  .heckitem{min-height:44px}
+  .editor input,.editor select{font-size:16px;min-height:44px}
+  .impwrap textarea{font-size:16px}
+}
+/* 狭い画面: 所見名の行と三択を分離し、陽性/陰性/未実施を横幅いっぱいの3等分に（375px で各約100×44px）。
+   タブは min-width:120px の折返し（2×2）をやめて1段に（4タブの内容幅は計約221px で 320px 幅でも収まる）。 */
+@media(max-width:600px){
+  .fnd{grid-template-columns:1fr;gap:6px}
+  .fnd .tri button{flex:1 1 0;min-height:44px;padding:12px 0;text-align:center}
+  .tabs button{min-width:0}
+}
 @media print{
   /* 免責・出典・ライセンスは配布物に必ず残す。教育資料として、また CC BY の表示義務として。 */
   body{background:#fff;font-size:11pt}
@@ -1288,7 +1307,9 @@ function applyHash(){
 function toast(msg){
   let t=document.querySelector(".toast");
   if(!t){ t=document.createElement("div"); t.className="toast"; document.body.appendChild(t); }
-  t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200);
+  /* 表示時間は文字数に比例させる（従来は約80字の注意文も一律2.2秒で消えていた）。下限2.2秒・上限10秒。 */
+  const dur=Math.min(10000, Math.max(2200, 1600 + msg.length*90));
+  t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),dur);
 }
 document.getElementById("bShare").onclick=async()=>{
   syncURL();
