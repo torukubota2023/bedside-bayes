@@ -32,6 +32,9 @@
   --serif:"Hiragino Mincho ProN","Yu Mincho","YuMincho","Noto Serif JP",serif;
   --sans:"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,-apple-system,sans-serif;
   --mono:"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+  /* 下部ステータスバーの実測高さ（safe-area 込み）。JS が起動時と画面回転時に入れ直す。
+     既定 62px は、従来の .wrap padding-bottom 90px と同じ余白になる値。 */
+  --sbar-h:62px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -41,7 +44,7 @@ body{
   background-image:linear-gradient(var(--rule-2) 1px,transparent 1px),linear-gradient(90deg,var(--rule-2) 1px,transparent 1px);
   background-size:28px 28px; background-position:-1px -1px;
 }
-.wrap{max-width:1180px;margin:0 auto;padding:26px 18px 90px}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 18px calc(var(--sbar-h,62px) + 28px)}
 header.top{border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:20px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink-2);text-transform:uppercase}
 h1{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.3;margin:6px 0 4px;letter-spacing:.02em}
@@ -62,7 +65,13 @@ h1 .sub{display:block;font-size:14px;font-family:var(--sans);font-weight:400;col
 input[type=range]{width:100%;accent-color:var(--ink);margin:4px 0 0}
 /* 狭い画面では viewBox 1000 が 0.33 倍に潰れて軌跡の文字が 3px になる。
    パネル内だけ横スクロールさせ、判読できる縮尺を保つ（ページ本体は横スクロールさせない）。 */
-.track-panel{padding:10px 6px 4px;overflow-x:auto;overflow-y:hidden}
+.track-panel{padding:10px 6px 4px;position:relative}
+/* 横スクロールは内側の入れ物が持つ。外側を position:relative のままにして、
+   「右にまだ続きがある」合図のグラデーションを、スクロールしても動かない位置に固定する。 */
+.track-scroll{overflow-x:auto;overflow-y:hidden}
+.track-fade{position:absolute;top:1px;right:1px;bottom:1px;width:38px;pointer-events:none;
+  opacity:0;transition:opacity .2s;background:linear-gradient(to left,var(--panel),rgba(251,252,253,0))}
+.track-panel.scr-r .track-fade{opacity:1}
 svg{display:block;width:100%;height:auto}
 @media(max-width:820px){ #track{min-width:760px} }
 #track text{font-family:var(--sans)}
@@ -75,8 +84,9 @@ svg{display:block;width:100%;height:auto}
 .cat:first-of-type{padding-top:0}
 .fnd{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dotted var(--rule-2)}
 .fnd .nm{font-size:13.5px;line-height:1.45}
-.fnd .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:1px}
-.badge{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:1px 4px;border:1px solid;margin-right:5px;vertical-align:1px}
+/* meta 10.5px / badge 9px / ci 10px はスマホ実用下限（11px）未満だった。文言は変えず大きさだけ上げる。 */
+.fnd .meta{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:1px}
+.badge{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:1px 4px;border:1px solid;margin-right:5px;vertical-align:1px}
 .b-src{color:#1F5C3A;border-color:#1F5C3A}
 .b-der{color:var(--fall);border-color:var(--fall)}
 .b-est{color:var(--flag);border-color:var(--flag)}
@@ -145,7 +155,7 @@ svg{display:block;width:100%;height:auto}
 .mech .mfoot{padding:8px 12px;background:#F4F7F9;border-top:1px solid var(--rule-2);font-size:11.5px;color:var(--ink-2);line-height:1.75}
 .mech .mfoot b{color:var(--ink)}
 /* 信頼区間まわり。値の確かさの差が一目で分かるようにする。 */
-.ci{font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-left:2px}
+.ci{font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-left:2px}
 .noci{color:var(--ink-3);font-style:normal}
 .nolr{color:var(--ink-3);font-weight:600}
 .cirow{font-family:var(--sans);font-size:12px;color:var(--ink-2);margin-top:8px;
@@ -187,21 +197,81 @@ summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1e
 .bar-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 0}
 .bar-tools .btn{font-size:12px}
 .bar-tools .ver{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.08em}
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;
-  font-size:13px;padding:9px 16px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+/* ホームバーのある iPhone（standalone PWA）でトーストが隠れないよう safe-area を加算する。通常ブラウザでは 0 で従来どおり。 */
+/* 下部ステータスバー（B-S1）より必ず上に出す。--sbar-h は safe-area を含む実測値なので env() は足さない。
+   80字級の注意文が 375px 幅で画面外へはみ出していたため、最大幅と折返しも入れる。 */
+.toast{position:fixed;left:50%;bottom:calc(var(--sbar-h,62px) + 14px);transform:translateX(-50%);background:var(--ink);color:#fff;
+  font-size:13px;line-height:1.6;padding:9px 16px;text-align:center;
+  /* left:50% だけだと使える幅が画面の半分に切られ、375px では 188px の細長い短冊になる。
+     width:max-content で本文なりの幅を取り、上限だけ画面幅で抑える。 */
+  width:max-content;max-width:min(560px, calc(100vw - 28px));
+  opacity:0;pointer-events:none;transition:opacity .25s;z-index:70}
 .toast.on{opacity:1}
 .legal{font-size:12px;line-height:1.85;color:var(--ink-2)}
 .legal b{color:var(--ink)}
 .legal ul{padding-left:1.2em;margin:6px 0}
 noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--rise);background:#fff}
+/* ── iPhone quick win（2026-08-22 監査対応）。基底規則より後ろに置く（後勝ちで効かせる）── */
+/* 指で操作する端末: 全ボタン・summary・チェック行を 44px 標的に。入力欄は 16px 未満だと iOS が自動ズームする。 */
+@media(pointer:coarse){
+  .btn{min-height:44px;padding:11px 14px}
+  .tabs button{min-height:44px}
+  summary{min-height:44px;padding-top:13px;padding-bottom:13px}
+  .heckitem{min-height:44px}
+  .editor input,.editor select{font-size:16px;min-height:44px}
+  .impwrap textarea{font-size:16px}
+}
+/* 狭い画面: 所見名の行と三択を分離し、陽性/陰性/未実施を横幅いっぱいの3等分に（375px で各約100×44px）。
+   タブは min-width:120px の折返し（2×2）をやめて1段に（4タブの内容幅は計約221px で 320px 幅でも収まる）。 */
+@media(max-width:600px){
+  .fnd{grid-template-columns:1fr;gap:6px}
+  .fnd .tri button{flex:1 1 0;min-height:44px;padding:12px 0;text-align:center}
+  .tabs button{min-width:0}
+}
+/* ── 下部固定ステータスバー（B-S1、2026-08-22）。所見をタップしたその場で
+   「事後確率・いまの域・直前の変化量」が見え、次の一手／判定／共有へ親指で届く。
+   高さぶんの余白は .wrap の padding-bottom（--sbar-h）が確保する。 */
+.sbar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--ink);color:#fff;
+  border-top:1px solid #000;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sbar-in{max-width:1180px;margin:0 auto;padding:5px 12px;display:flex;align-items:center;gap:10px}
+.sbar-num{display:flex;flex-direction:column;justify-content:center;line-height:1.25;min-width:0}
+.sbar-num .p{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:.02em}
+.sbar-num .sub{font-size:11px;color:#B9C6CD;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbar-num .d{font-family:var(--mono);margin-left:6px}
+.sbar-num .d.up{color:#F1A8B2}
+.sbar-num .d.dn{color:#A6C9EA}
+.sbar-btns{display:flex;gap:6px;margin-left:auto;flex:none}
+.sbtn{font-family:var(--sans);font-size:11.5px;min-height:44px;padding:0 9px;border:1px solid #566873;
+  background:transparent;color:#fff;cursor:pointer;white-space:nowrap}
+.sbtn:hover{background:#2B3C46}
+/* ── 症例プリセットの最短路（B-S3）。判定パネル内の従来の場所と同じ DB[key].cases から描く。
+   文言はどちらも c.t / c.d のまま ── 二重管理はしない。 */
+.casebar{display:flex;align-items:center;gap:6px;overflow-x:auto;overflow-y:hidden;margin:-8px 0 16px;padding:1px 0 3px}
+.casebar .caselbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink-3);flex:none;padding-right:2px}
+.chip{flex:none;font-family:var(--sans);font-size:12px;padding:6px 10px;border:1px solid var(--rule);
+  background:var(--panel);color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.chip:hover{background:#EEF3F5;color:var(--ink)}
+/* ── 所見の注記の段階開示（B-S2）。既定2行、タップで全文。文言は一切変えず初期表示だけ畳む。
+   バッジ（出典/推定/要確認/実測）と尤度比は上の .meta に残り、畳んだ状態でも常に見える。 */
+.fnote{display:flex;gap:7px;align-items:flex-end;width:100%;text-align:left;border:0;background:transparent;
+  padding:1px 0 2px;margin:0;cursor:pointer}
+.fnote .ftx{flex:1 1 auto;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--ink-3);opacity:.85}
+.fnote[aria-expanded="true"] .ftx{display:block;overflow:visible;-webkit-line-clamp:unset}
+/* 「…続き」は畳んだ本文の右下に並べる。行を1本増やさないための配置。 */
+.fnote .fmore{flex:none;font-family:var(--mono);font-size:11px;color:var(--fall);
+  border-bottom:1px solid currentColor;line-height:1.6}
+@media(pointer:coarse){ .chip{min-height:44px} }
 @media print{
   /* 免責・出典・ライセンスは配布物に必ず残す。教育資料として、また CC BY の表示義務として。 */
   body{background:#fff;font-size:11pt}
-  .tabs,.bar-tools,.toast,.ctrl input,#rank .bar{display:none}
+  .tabs,.bar-tools,.toast,.ctrl input,#rank .bar,.sbar,.casebar,.track-fade,.fnote .fmore{display:none}
   .panel{border:1px solid #999;break-inside:avoid;page-break-inside:avoid}
   .wrap{max-width:100%;padding:0}
-  .track-panel{overflow:visible}
+  .track-panel,.track-scroll{overflow:visible}
   #track{min-width:0}
+  /* 紙には注記の全文を出す（畳みは画面だけの都合）。 */
+  .fnote .ftx{display:block;overflow:visible;-webkit-line-clamp:unset}
   details{break-inside:avoid;page-break-inside:avoid}
   summary{list-style:none}
   footer{break-before:auto}
@@ -223,13 +293,15 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.9.1</span>
+    <span class="ver" id="verLabel">v2.10.0</span>
   </div>
 </header>
 
 <noscript>このツールは計算をすべて端末内のJavaScriptで行います。JavaScriptを有効にしてください。</noscript>
 
 <div class="tabs" id="tabs" role="group" aria-label="対象疾患"></div>
+<!-- 症例プリセットの最短路（B-S3）。中身は drawCases() が「4. 判定」内の従来の一覧と同じ源から描く。 -->
+<div class="casebar" id="casesTop" role="group" aria-label="症例プリセット"></div>
 
 <section class="panel">
   <h2>1. 設定 <small>PRIOR &amp; THRESHOLDS</small></h2>
@@ -257,8 +329,9 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
   </div>
 </section>
 
-<section class="panel track-panel">
-  <svg id="track" viewBox="0 0 1000 320" role="img" aria-label="確率軌跡"></svg>
+<section class="panel track-panel" id="trackPanel">
+  <div class="track-scroll" id="trackScroll"><svg id="track" viewBox="0 0 1000 320" role="img" aria-label="確率軌跡"></svg></div>
+  <div class="track-fade" aria-hidden="true"></div>
 </section>
 
 <div class="grid2">
@@ -290,7 +363,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     </details>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="secRank">
     <h2>3. 次の一手 <small>EXPECTED INFORMATION GAIN</small></h2>
     <div class="note" style="margin-bottom:8px"><b>次にどの診察をすれば、いちばん迷いが減るか</b>の順番です。<br>やる前は陽性か陰性か分かりません。そこで<b>陽性だった場合と陰性だった場合の両方を、それぞれの起こりやすさで重みづけして平均</b>し、確率がどれだけ動きそうかを1つの数にしています（単位 bit）。「期待」が付くのはこのためです。<br><b>1 bit ＝ 五分五分の迷いが、ひとつ完全に解ける</b>だけの情報量。0.1 bit を切ると、確率はほとんど動きません。<br>ただし<b>「確率が動かない」ことと「判断が変わらない」ことは別</b>です。閾値のすぐ近くにいれば、わずかな動きでも除外域・確定域に入ります。そのため各行には <b>「判断が変わる確率」</b> を併記しています ── <b>実務ではこちらが決め手になることが多い</b>ので、bit が小さくてもこの数字が大きい所見は見逃さないでください。</div>
     <details class="eig">
@@ -398,7 +471,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
   </section>
 </div>
 
-<section class="panel">
+<section class="panel" id="secVerdict">
   <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
   <div class="verdict" id="verdict"></div>
   <div id="mech"></div>
@@ -440,6 +513,22 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
   臨床判断の代替ではなく、確率的推論の可視化のための教育ツール。単一施設・単一集団に由来するLRは外挿で容易に壊れる。
 </footer>
 
+</div>
+
+<!-- 下部固定ステータスバー（B-S1）。数値は render() が書き換える。
+     .wrap の外に置く ── position:fixed で画面の下端に貼り付けるため。 -->
+<div class="sbar" id="sbar">
+  <div class="sbar-in">
+    <div class="sbar-num" role="status" aria-live="polite" aria-atomic="true">
+      <span class="p" id="sbP">—</span>
+      <span class="sub"><span id="sbZ">—</span><span class="d" id="sbD"></span></span>
+    </div>
+    <div class="sbar-btns">
+      <button type="button" class="sbtn" id="sbNext">次の一手へ</button>
+      <button type="button" class="sbtn" id="sbVerd">判定へ</button>
+      <button type="button" class="sbtn" id="sbShare">共有</button>
+    </div>
+  </div>
 </div>
 <script>
 "use strict";
@@ -858,6 +947,32 @@ function drawTrack(){
   s.push(`<text x="${bx}" y="${YR-26}" font-size="30" class="m" fill="#14232C" text-anchor="${ta}">${pct(p)}%</text>`);
   s.push(`<text x="${bx}" y="${YR-12}" font-size="10" fill="#4A5C66" text-anchor="${ta}" class="m">POST-TEST</text>`);
   document.getElementById("track").innerHTML = s.join("");
+  followTrack(x, p);
+}
+
+/* 確率の軌跡の自動追従（B-Q4、2026-08-22）。
+   狭い画面では図の右 6 割ほどが画面の外にあり、事後確率の大きな数字と治療閾値線が見えない。
+   ただし常時追従にすると、左を見ようと指でパンしている最中に引き戻してしまう。
+   そこで「事後確率が変わったときだけ」＝所見をタップしたり閾値を動かしたときだけ追従する。 */
+let lastTrackPost=null;
+function followTrack(xv, p){
+  const sc=document.getElementById("trackScroll");
+  if(!sc){ return; }
+  const room = sc.scrollWidth - sc.clientWidth;
+  const moved = lastTrackPost!==null && Math.abs(p-lastTrackPost) > 1e-9;
+  lastTrackPost = p;
+  if(room > 2 && moved){
+    const to = clamp(xv/1000*sc.scrollWidth - sc.clientWidth/2, 0, room);
+    const soft = !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+    try{ sc.scrollTo({left:to, behavior: soft?"smooth":"auto"}); }catch(e){ sc.scrollLeft=to; }
+  }
+  trackFade();
+}
+/* 右にまだ続きがあるときだけ、右端のグラデーションを出す（無いときは出さない）。 */
+function trackFade(){
+  const sc=document.getElementById("trackScroll"), pn=document.getElementById("trackPanel");
+  if(!sc||!pn) return;
+  pn.classList.toggle("scr-r", sc.scrollLeft + sc.clientWidth < sc.scrollWidth - 2);
 }
 /* 属性値に埋め込むため引用符まで確実に潰す。共有リンクの自作所見名が唯一の外部入力。 */
 function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -867,6 +982,9 @@ function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").rep
 const TAGS = {src:["b-src","出典"], der:["b-der","導出"], est:["b-est","推定"], chk:["b-chk","要確認"], own:["b-chk","自作"], mes:["b-mes","実測"]};
 function badge(t){ const b=TAGS[t]||TAGS.est; return `<span class="badge ${b[0]}">${b[1]}</span>`; }
 
+/* 注記を開いた所見の id。render() のたびに所見一覧を作り直すので、
+   ここに持たないと「開く → 陽性を押す → 閉じてしまう」ことになる。 */
+const noteOpen={};
 function drawFindings(){
   const byCat={}; panel.forEach(f=>{ (byCat[f.cat]=byCat[f.cat]||[]).push(f); });
   let h="";
@@ -888,9 +1006,18 @@ function drawFindings(){
           ? `LR <span class="nolr">${esc(f.nsgLabel)}</span><span class="ci noci">(LR+ ${lrf(f.lp)}／LR− ${lrf(f.ln)}／確率は動かさない)</span>`
           : `LR <span class="nolr">有意でない</span><span class="ci noci">(点推定 ${lrf(f.lp)}／確率は動かさない)</span>`)
         : `LR+ ${lrf(f.lp)}${ciP} ／ ${lnP}`;
+      /* 注記は既定 2 行に畳む（B-S2）。バッジと尤度比は .meta に残して常に見せる。
+         文言は一字も変えていない ── 変えたのは初期表示の高さだけ。 */
+      const op = !!noteOpen[f.id];
+      const noteHtml = f.note
+        ? `<button type="button" class="fnote" data-n="${esc(f.id)}" aria-expanded="${op}">`
+          + `<span class="ftx">${esc(f.note)}</span>`
+          + `<span class="fmore">${op?"閉じる":"…続き"}</span></button>`
+        : "";
       h+=`<div class="fnd"><div>
         <div class="nm">${esc(f.nm)}</div>
-        <div class="meta">${badge(f.tag)}${lrLine}　<span style="opacity:.85">${esc(f.note||"")}</span></div>
+        <div class="meta">${badge(f.tag)}${lrLine}</div>
+        ${noteHtml}
       </div>
       <div class="tri" role="group" aria-label="${esc(f.nm)}">
         <button class="pos" data-f="${f.id}" data-v="1"  aria-pressed="${v===1}">陽性</button>
@@ -902,6 +1029,10 @@ function drawFindings(){
   document.getElementById("findings").innerHTML=h;
   document.querySelectorAll(".tri button").forEach(b=>b.onclick=()=>{
     st[b.dataset.f]= +b.dataset.v; render();
+  });
+  /* 注記の開閉。確率には触らないので render() ではなく所見一覧だけ描き直す。 */
+  document.querySelectorAll(".fnote").forEach(b=>b.onclick=()=>{
+    noteOpen[b.dataset.n]=!noteOpen[b.dataset.n]; drawFindings();
   });
 }
 
@@ -1053,14 +1184,52 @@ function drawVerdict(){
     + (R.dropped>0 ? `<br><span style="color:var(--rise)">※ 未実施が多いため、計算量の上限により ${R.dropped} 所見は列挙から除外している。実際の到達範囲はこれより広い。</span>` : "");
 }
 
+function applyCase(i){
+  const c=DB[key].cases[i]; if(!c) return;
+  st={}; Object.keys(c.set).forEach(k=>st[k]=c.set[k]);
+  pre=c.pre; document.getElementById("pre").value=L(pre); render();
+}
+/* 症例プリセットは 2 か所に出る（B-S3）── 「4. 判定」内の従来の一覧と、タブ直下のチップ列。
+   源はどちらも DB[key].cases ひとつだけ。文言を二重に持たない。 */
 function drawCases(){
-  document.getElementById("cases").innerHTML = DB[key].cases.map((c,i)=>
-    `<button class="case" data-c="${i}"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></button>`).join("");
-  document.querySelectorAll(".case").forEach(b=>b.onclick=()=>{
-    const c=DB[key].cases[+b.dataset.c];
-    st={}; Object.keys(c.set).forEach(k=>st[k]=c.set[k]);
-    pre=c.pre; document.getElementById("pre").value=L(pre); render();
-  });
+  const cs=DB[key].cases;
+  document.getElementById("cases").innerHTML = cs.map((c,i)=>
+    `<button class="case js-case" data-c="${i}"><b>${esc(c.t)}</b><span>${esc(c.d)}</span></button>`).join("");
+  const top=document.getElementById("casesTop");
+  if(top) top.innerHTML = `<span class="caselbl">症例プリセット</span>` + cs.map((c,i)=>
+    `<button class="chip js-case" data-c="${i}" title="${esc(c.d)}">${esc(c.t)}</button>`).join("");
+  document.querySelectorAll(".js-case").forEach(b=>b.onclick=()=>applyCase(+b.dataset.c));
+}
+
+/* 下部ステータスバー（B-S1）。所見をタップしたその場で数字が変わることが眼目なので、
+   render() のたびに書き換える。直前の値との差を「pt（パーセントポイント）」で添える。 */
+const ZONE_LABEL=["除外域","グレーゾーン","確定域"];
+let lastBarPost=null;
+function drawStatusbar(){
+  const p=post(), d=document.getElementById("sbD");
+  document.getElementById("sbP").textContent=pct(p)+"%";
+  document.getElementById("sbZ").textContent=ZONE_LABEL[zoneOf(p)];
+  const dv = lastBarPost===null ? 0 : (p-lastBarPost)*100;
+  lastBarPost=p;
+  if(Math.abs(dv)>=0.05){
+    const a=Math.abs(dv);
+    d.textContent = (dv>0?"＋":"−") + (a>=9.95 ? Math.round(a) : Math.round(a*10)/10) + "pt";
+    d.className = "d " + (dv>0?"up":"dn");
+  }else{
+    d.textContent=""; d.className="d";
+  }
+  measureSbar();
+}
+/* バーの実測高さを CSS 変数へ返す。本文の下余白（.wrap）とトーストの位置がこれを見ている。 */
+function measureSbar(){
+  const b=document.getElementById("sbar"); if(!b) return;
+  document.documentElement.style.setProperty("--sbar-h", b.offsetHeight+"px");
+}
+function jumpTo(id){
+  const el=document.getElementById(id); if(!el) return;
+  const soft = !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  try{ el.scrollIntoView({behavior: soft?"smooth":"auto", block:"start"}); }
+  catch(e){ el.scrollIntoView(); }
 }
 
 function render(){
@@ -1076,7 +1245,7 @@ function render(){
         ? `<b>導出値。</b>${esc(DB[key].tSrc)}`
         : `<b>慣習値。</b>このパネルの2本は、文献から導いたものではなく、慣例的に置いた目安である。閾値の理論値は「治療閾値のオッズ ＝ 治療の害 ÷ 治療の益」で決まり（Pauker &amp; Kassirer, N Engl J Med 1980, PMID 7366635）、有病率や所見の数では動かない。見逃しの害が大きい患者では下がり、治療の害が大きい患者では上がる。`);
   document.getElementById("kapV").textContent=kap.toFixed(2);
-  drawFindings(); drawHeck(); drawTrack(); drawRank(); drawVerdict();
+  drawFindings(); drawHeck(); drawTrack(); drawRank(); drawVerdict(); drawStatusbar();
   if(typeof syncURL==="function") syncURL();
 }
 
@@ -1087,6 +1256,9 @@ document.getElementById("tabs").innerHTML = Object.keys(DB).map(k=>
    パネルを DB から作り直すので、取り込んだ実測（mes）はここで消える ── 仕様（メモリ保持のみ）。 */
 function setDisease(k){
   key=k; panel=clone(DB[key].f); st={}; heckState={};
+  /* 疾患が変われば「直前の値」は別の話。差と軌跡の追従の起点を捨てる。 */
+  lastBarPost=null; lastTrackPost=null;
+  Object.keys(noteOpen).forEach(id=>delete noteOpen[id]);
   pre=DB[key].pre; tTest=DB[key].tTest; tTreat=DB[key].tTreat;
   document.getElementById("pre").value=L(pre);
   document.getElementById("tTest").value=tTest;
@@ -1288,9 +1460,12 @@ function applyHash(){
 function toast(msg){
   let t=document.querySelector(".toast");
   if(!t){ t=document.createElement("div"); t.className="toast"; document.body.appendChild(t); }
-  t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200);
+  /* 表示時間は文字数に比例させる（従来は約80字の注意文も一律2.2秒で消えていた）。下限2.2秒・上限10秒。 */
+  const dur=Math.min(10000, Math.max(2200, 1600 + msg.length*90));
+  t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),dur);
 }
-document.getElementById("bShare").onclick=async()=>{
+/* 共有は上部ツールバーと下部ステータスバーの両方から呼ぶ（B-S1）。処理は 1 か所のまま。 */
+async function shareLink(){
   syncURL();
   const url=location.href;
   const msg = panel.some(f=>f.tag==="mes")
@@ -1298,7 +1473,11 @@ document.getElementById("bShare").onclick=async()=>{
     : "リンクをコピーしました。設定と所見がそのまま再現されます。";
   try{ await navigator.clipboard.writeText(url); toast(msg); }
   catch(e){ prompt("このリンクをコピーしてください", url); }
-};
+}
+document.getElementById("bShare").onclick=shareLink;
+document.getElementById("sbShare").onclick=shareLink;
+document.getElementById("sbNext").onclick=()=>jumpTo("secRank");
+document.getElementById("sbVerd").onclick=()=>jumpTo("secVerdict");
 document.getElementById("bPrint").onclick=()=>window.print();
 document.getElementById("bClear").onclick=()=>{ st={}; render(); };
 
@@ -1315,6 +1494,13 @@ document.getElementById("tTest").value=tTest;
 document.getElementById("tTreat").value=tTreat;
 drawCases(); render();
 addEventListener("hashchange",()=>{ if(applyHash()){ drawCases(); render(); } });
+/* 軌跡の「続きがある」合図と、下部バーの高さは、指でのパン・画面回転でも合わせ直す。 */
+(function(){
+  const sc=document.getElementById("trackScroll");
+  if(sc) sc.addEventListener("scroll", trackFade, {passive:true});
+  addEventListener("resize", ()=>{ trackFade(); measureSbar(); });
+  measureSbar(); trackFade();
+})();
 
 /* offline use: register the service worker only where it is allowed */
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)){
