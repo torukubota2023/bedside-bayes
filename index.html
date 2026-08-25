@@ -65,7 +65,16 @@ h1 .sub{display:block;font-size:14px;font-family:var(--sans);font-weight:400;col
 input[type=range]{width:100%;accent-color:var(--ink);margin:4px 0 0}
 /* 狭い画面では viewBox 1000 が 0.33 倍に潰れて軌跡の文字が 3px になる。
    パネル内だけ横スクロールさせ、判読できる縮尺を保つ（ページ本体は横スクロールさせない）。 */
-.track-panel{padding:10px 6px 4px;position:relative}
+/* 軌跡は所見を選んでいる間ずっと見えていなければ意味がない（2026-08-25 副院長要望）。
+   画面上端に貼り付け、所見一覧まで下りたら軸の帯だけに縮める（compact）。
+   縮小は viewBox の切り出しで行う ── 描画を2系統に分けると、片方だけ古くなる。 */
+.track-panel{padding:10px 6px 4px;position:relative;position:sticky;top:0;z-index:20;
+  background:var(--panel);transition:box-shadow .18s,padding .18s}
+.track-panel.compact{padding:4px 6px 2px;box-shadow:0 8px 16px -10px rgba(20,35,44,.45)}
+/* 通常時は軸の近くの複製ラベルを、compact 時は上端の元ラベルを、それぞれ隠す */
+.track-panel:not(.compact) .clab{display:none}
+.track-panel.compact .flab{display:none}
+.track-sentinel{height:1px}
 /* 横スクロールは内側の入れ物が持つ。外側を position:relative のままにして、
    「右にまだ続きがある」合図のグラデーションを、スクロールしても動かない位置に固定する。 */
 .track-scroll{overflow-x:auto;overflow-y:hidden}
@@ -271,6 +280,8 @@ noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--ris
   .panel{border:1px solid #999;break-inside:avoid;page-break-inside:avoid}
   .wrap{max-width:100%;padding:0}
   .track-panel,.track-scroll{overflow:visible}
+  .track-panel{position:static;box-shadow:none}
+  .track-panel .clab{display:none}
   #track{min-width:0}
   /* 紙には注記の全文を出す（畳みは画面だけの都合）。 */
   .fnote .ftx{display:block;overflow:visible;-webkit-line-clamp:unset}
@@ -331,6 +342,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
   </div>
 </section>
 
+<div class="track-sentinel" id="trackSentinel" aria-hidden="true"></div>
 <section class="panel track-panel" id="trackPanel">
   <div class="track-scroll" id="trackScroll"><svg id="track" viewBox="0 0 1000 320" role="img" aria-label="確率軌跡"></svg></div>
   <div class="track-fade" aria-hidden="true"></div>
@@ -807,11 +819,12 @@ function eigUnknown(f){ return eigInputs(f) === null; }
      excl:{ids:[...], pos:true} … 陽性のときだけ、指定 id を採点外に（例: 体温37.8℃超 ⊃ バイタル異常）
    採点外の所見は、事後確率・信頼区間・機序パネル・次の一手・到達可能域のすべてから除く。
    トグルの状態は消さない（外せば復活）。返り値は id → 内包元の所見名。 */
-function exclInfo(){
+function exclInfo(state){
+  const S = state || st;
   const out = {};
   panel.forEach(f=>{
     const e = f.excl; if(!e) return;
-    const dir = st[f.id]||0;
+    const dir = S[f.id]||0;
     if(!dir) return;
     if(e.pos && dir < 0) return;
     const ids = e.ids === "*" ? panel.filter(g=>g.id!==f.id).map(g=>g.id) : e.ids;
@@ -820,19 +833,32 @@ function exclInfo(){
   return out;
 }
 
-/* applied findings -> ordered steps with correlation shrinkage */
-function steps(){
-  const ex = exclInfo();
-  const on = panel.filter(f=>st[f.id] && !ex[f.id]);
+/* applied findings -> ordered steps with correlation shrinkage
+   state を渡すと「もしその状態だったら」を同じ式で計算できる。予告（次の一手・到達可能域）は
+   必ずこの経路を通すこと ── 「いまの事後 × 候補のLR」で予告すると、候補が excl を持つ場合に
+   実際の着地点とずれる（2026-08-25 の独立検証で最大73.7ポイントの食い違いを検出）。 */
+function steps(state){
+  const S = state || st;
+  const ex = exclInfo(S);
+  const on = panel.filter(f=>S[f.id] && !ex[f.id]);
   const w = {}; const out=[];
   // strongest first within each cluster keeps the shrinkage honest
-  on.slice().sort((a,b)=>Math.abs(Math.log(lrOf(b,st[b.id]>0)))-Math.abs(Math.log(lrOf(a,st[a.id]>0))))
+  on.slice().sort((a,b)=>Math.abs(Math.log(lrOf(b,S[b.id]>0)))-Math.abs(Math.log(lrOf(a,S[a.id]>0))))
     .forEach(f=>{
       const n = w[f.cl]||0; w[f.cl]=n+1;
-      const raw = lrOf(f, st[f.id]>0);
-      out.push({f, dir:st[f.id], raw, n, eff: Math.exp(Math.log(raw)*Math.pow(kap,n)), damp:n>0});
+      const raw = lrOf(f, S[f.id]>0);
+      out.push({f, dir:S[f.id], raw, n, eff: Math.exp(Math.log(raw)*Math.pow(kap,n)), damp:n>0});
     });
   return out;
+}
+/* 仮の状態の事後確率。post() と同じ式（SKILL.md「予告と挙動は同じ式から出さなければならない」） */
+function postOf(state){ let z=L(pre); steps(state).forEach(s=>z+=Math.log(s.eff)); return IL(z); }
+function withF(id, dir){ const s=Object.assign({}, st); s[id]=dir; return s; }
+/* この候補を押したら、適用済みの所見が新たに採点外になるか（その名前を返す） */
+function wouldDrop(f, dir){
+  if(!f.excl) return [];
+  const cur = exclInfo(), next = exclInfo(withF(f.id, dir));
+  return panel.filter(g=>st[g.id] && !cur[g.id] && next[g.id]).map(g=>g.nm);
 }
 
 /* 各所見の尤度比そのものに幅（95%信頼区間）がある。
@@ -871,7 +897,11 @@ function zoneOf(p){ return p*100 < tTest ? 0 : (p*100 >= tTreat ? 2 : 1); }
 /* exhaustive reachability over untaken findings */
 function reach(){
   const ex = exclInfo();   // 採点外の所見は「取っても動かない」ので到達可能域にも入れない
-  const rest = panel.filter(f=>!st[f.id] && !ex[f.id]);
+  /* 排他元（押すと既存の所見を採点外にする所見）も外す。到達可能域は「残りの診察を
+     全部積み上げたらどこまで行けるか」の分布なので、積み上げを帳消しにする所見を
+     混ぜると下限・上限が実際と食い違う（2026-08-25 の検証で下限が46ポイント自信過剰側にずれた）。
+     その所見の着地点は「次の一手」の乗り換え枠に実値で出している。 */
+  const rest = panel.filter(f=>!st[f.id] && !ex[f.id] && !wouldDrop(f,1).length);
   const p0 = post();
   const use = rest.slice(0, 14);
   const dropped = rest.length - use.length;   // 15件以上は列挙しない。黙って落とさず表示する。
@@ -911,7 +941,12 @@ function drawTrack(){
   /* 軌跡は1所見あたり26px下がる。固定の高さだと8所見目から
      事後確率の数字・POST-TEST・目盛りに重なって読めなくなるので、キャンバスを伸ばす。 */
   YR = Math.max(278, 44 + S.length*26 + 66);
-  document.getElementById("track").setAttribute("viewBox", "0 0 1000 "+(YR+42));
+  /* compact では軸の帯だけを切り出す。閾値の線・目盛り・事後確率の点・到達可能域の雲は
+     すべて YR を基準に下端へ集まっているので、切り出しは YR から逆算する。
+     所見が増えて YR が伸びても、帯の高さは変わらない。 */
+  const cp = document.getElementById("trackPanel").classList.contains("compact");
+  document.getElementById("track").setAttribute("viewBox",
+    cp ? `0 ${YR-84} 1000 ${84+42}` : "0 0 1000 "+(YR+42));
   const s=[];
   const zx = t => xOf(clamp(t/100,1e-4,.9999));
   // zone bands
@@ -936,7 +971,9 @@ function drawTrack(){
   [[tTest,"検査閾値"],[tTreat,"治療閾値"]].forEach(([t,lb])=>{
     const x=zx(t);
     s.push(`<line x1="${x}" y1="20" x2="${x}" y2="${YR}" stroke="#A8791F" stroke-width="1" stroke-dasharray="3 4"/>`);
-    s.push(`<text x="${x+4}" y="30" font-size="10" fill="#A8791F" class="m">${lb} ${t}%</text>`);
+    s.push(`<text x="${x+4}" y="30" font-size="10" fill="#A8791F" class="m flab">${lb} ${t}%</text>`);
+    /* compact（軸の帯だけを見せる状態）では y=30 が切り取られるので、軸のすぐ上にも同じラベルを置く */
+    s.push(`<text x="${x+4}" y="${YR-70}" font-size="10" fill="#A8791F" class="m clab">${lb} ${t}%</text>`);
   });
   // path
   let y=44, x=xOf(pre);
@@ -995,6 +1032,33 @@ function followTrack(xv, p){
   }
   trackFade();
 }
+/* 軌跡が画面上端に貼り付いたら compact へ。sentinel（軌跡の直前の1px）が
+   画面から出た＝貼り付いた、で判定する。scroll イベントを毎回聞くより軽い。 */
+function initStickyTrack(){
+  const sen=document.getElementById("trackSentinel"), pn=document.getElementById("trackPanel");
+  if(!sen||!pn) return;
+  /* IntersectionObserver は使わない ── レンダリングが止まっている環境（隠れたタブ・
+     一部の検証用ブラウザ）でコールバックが発火せず、compact に切り替わらないことがある
+     （2026-08-25 実測）。scroll を rAF でスロットルするほうが確実で、実測でも十分軽い。 */
+  let last=0;
+  const upd=()=>{
+    const want = sen.getBoundingClientRect().top < 0;   // sentinel が上へ抜けた＝貼り付いた
+    if(pn.classList.contains("compact") !== want){
+      pn.classList.toggle("compact", want);
+      drawTrack();          // viewBox の切り替えだけ。数値は触らない
+      trackFade();
+    }
+  };
+  /* rAF も非表示タブ・隠れたペインでは止まるので使わない（IO と同じ理由）。
+     時間で間引く。読み取りは1要素の getBoundingClientRect だけで、再描画は状態が変わった回のみ。 */
+  const onScroll=()=>{ const n=Date.now(); if(n-last<16) return; last=n; upd(); };
+  addEventListener("scroll", onScroll, {passive:true});
+  addEventListener("resize", onScroll);
+  syncSticky = upd;   // 所見を押して再描画したときにも貼り付き状態を合わせ直す
+  upd();
+}
+let syncSticky = null;
+
 /* 右にまだ続きがあるときだけ、右端のグラデーションを出す（無いときは出さない）。 */
 function trackFade(){
   const sc=document.getElementById("trackScroll"), pn=document.getElementById("trackPanel");
@@ -1094,7 +1158,14 @@ function drawRank(){
   /* 採点外の所見は「押しても確率が動かない」ので、順位に混ぜると予告と実挙動が食い違う。
      順位から外し、下の専用枠で理由ごと見せる。 */
   const exRows = panel.filter(f=>ex[f.id]);
-  let rows = panel.filter(f=>!st[f.id] && !ex[f.id]).map(f0=>{
+  /* 押した瞬間に適用済みの所見を採点外にしてしまう候補（＝排他元）は、順位に混ぜない。
+     「いまの事後 × その所見のLR」で予告すると、実際には事前確率から計算し直されるため
+     大きくずれる。情報利得も他の候補と土俵が違う（積み上げではなく乗り換え）ので、
+     専用枠に出して着地点を実値で示す。 */
+  const swapRows = panel.filter(f=>!st[f.id] && !ex[f.id] && wouldDrop(f, 1).length)
+    .map(f0=>({f0, drop:wouldDrop(f0,1), a:postOf(withF(f0.id,1)), b:postOf(withF(f0.id,-1))}));
+  const swapIds = {}; swapRows.forEach(r=>{ swapIds[r.f0.id]=1; });
+  let rows = panel.filter(f=>!st[f.id] && !ex[f.id] && !swapIds[f.id]).map(f0=>{
     /* すでに同じ機序を測っていれば、その所見の実効LRは減衰している。
        減衰前のLRで情報利得を出すと、相関する所見を「次の一手」の上位に押し上げてしまう。 */
     const f = shrink(f0, used[f0.cl]||0);
@@ -1107,8 +1178,9 @@ function drawRank(){
        「陰性なら4.5%」と予告しておきながら、実際に陰性を押すと確率が動かない、という
        食い違いが起きる。予告と挙動は同じ数から出さなければならない。 */
     const z0 = L(p);
-    const a = IL(z0 + Math.log(lrOf(f,true)));
-    const b = IL(z0 + Math.log(lrOf(f,false)));
+    /* 着地点は「実際に押したときと同じ経路」から出す（postOf）。κ の減衰も排他も同じ式を通る。 */
+    const a = postOf(withF(f0.id, 1));
+    const b = postOf(withF(f0.id, -1));
     /* 情報量は【一組】から出す。予告に使う数と混ぜると確率の帳尻が合わなくなる（eigInputs 参照）。
        だから頻度も事後確率も、ここでは m だけから作る。 */
     const m = eigInputsDamped(f0, used[f0.cl]||0);
@@ -1145,6 +1217,13 @@ function drawRank(){
         : ""}</div>
       <ul class="unklist">${unk.map(r=>`<li><span class="unknm">${esc(r.f.nm)}</span>
         <span class="unklr">${r.f.nsg?esc(r.f.nsgLabel||"有意でない"):"LR+ "+r.f.lp.toFixed(2)}</span></li>`).join("")}</ul></li>` : "")
+    + (swapRows.length ? `<li class="unkbox"><div class="unkttl">積み上げではなく「乗り換え」になる所見（${swapRows.length}件）</div>
+      <div class="unknote">下の所見は、いま取っている所見を<b>材料にして作られる判断</b>である。
+      押すと、いまの所見は採点外になり、確率は<b>事前確率から計算し直される</b>（同じ情報を二度数えないため）。
+      積み上げの続きではないので順位には混ぜず、着地点だけを示す。</div>
+      <ul class="unklist">${swapRows.map(r=>`<li><span class="unknm">${esc(r.f0.nm)}</span>
+        <span class="unklr">陽性なら ${pct(r.a)}%／陰性なら ${pct(r.b)}%</span></li>
+        <li class="dampnote">⌁ 押すと採点外になる：${r.drop.map(esc).join("、")}</li>`).join("")}</ul></li>` : "")
     + (exRows.length ? `<li class="unkbox"><div class="unkttl">採点外の所見（${exRows.length}件）</div>
       <div class="unknote">下の所見は「<b>${esc(ex[exRows[0].id])}</b>」に織り込み済みのため、いま押しても確率は動かない。
       その判断は、これらの所見を材料に作られたものだからである ── 重ねて数えると同じ情報を二度数える。
@@ -1289,6 +1368,7 @@ function render(){
   document.getElementById("kapV").textContent=kap.toFixed(2);
   drawFindings(); drawHeck(); drawTrack(); drawRank(); drawVerdict(); drawStatusbar();
   if(typeof syncURL==="function") syncURL();
+  if(syncSticky) syncSticky();   // 貼り付き（compact）の判定は再描画のたびに取り直す
 }
 
 /* ------------------------------------------------------------------ wire */
@@ -1534,7 +1614,7 @@ document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</l
 document.getElementById("pre").value=L(pre);
 document.getElementById("tTest").value=tTest;
 document.getElementById("tTreat").value=tTreat;
-drawCases(); render();
+drawCases(); render(); initStickyTrack();
 addEventListener("hashchange",()=>{ if(applyHash()){ drawCases(); render(); } });
 /* 軌跡の「続きがある」合図と、下部バーの高さは、指でのパン・画面回転でも合わせ直す。 */
 (function(){
