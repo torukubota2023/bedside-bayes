@@ -159,6 +159,10 @@ svg{display:block;width:100%;height:auto}
 .mech .cl{font-weight:700;color:var(--ink)}
 .mech .fs{color:var(--ink-2)}
 .mech .ct{font-size:11.5px;margin-left:4px}
+.kspan{margin:0 0 10px;padding:9px 12px;border-radius:9px;font-size:13.5px;line-height:1.7}
+.kspan.ok{background:#EEF6F1;border-left:4px solid #2E6B45;color:#22523A}
+.kspan.warn{background:#FDF4EF;border-left:4px solid #B5651F;color:#7A4413}
+.kspan .mk,.kspan .md{margin-left:8px}
 .mech .agree{color:var(--fall)}
 .mech .alone{color:var(--ink-3)}
 .mech .clash{color:var(--rise);font-weight:700}
@@ -969,6 +973,17 @@ const KRULE = {
   "indep":      {nm:"別の機序 ── 満額で掛ける", k:"1",
                  why:"重複計上は起きていない"},
 };
+/* いまの所見のまま κ だけを 0〜1 で振ったとき、事後確率がどこからどこまで動くか。
+   ★「その結論は κ という推測に、どれだけ寄りかかっているか」を数字で見せるための関数。
+     幅が 0 なら、κ を疑う必要がそもそも無い（論理・原理・実測だけで決まっている）。 */
+function kapSpan(state){
+  const keep = kap;
+  kap = 0; const lo = postOf(state);
+  kap = 1; const hi = postOf(state);
+  kap = keep; const now = postOf(state);
+  return {lo:Math.min(lo,hi), hi:Math.max(lo,hi), now, span:Math.abs(hi-lo)*100};
+}
+
 /* 仮の状態の事後確率。post() と同じ式（SKILL.md「予告と挙動は同じ式から出さなければならない」） */
 function postOf(state){ let z=L(pre); steps(state).forEach(s=>z+=Math.log(s.eff)); return IL(z); }
 function withF(id, dir){ const s=Object.assign({}, st); s[id]=dir; return s; }
@@ -1405,7 +1420,19 @@ function drawVerdict(){
     const byRule = {};
     S.forEach(s=>{ if(s.rule && s.n>0) byRule[s.rule]=(byRule[s.rule]||0)+1; });
     const usedRules = Object.keys(byRule);
-    const head = damped
+    const sp = kapSpan(st);
+    const spanLine = sp.span < 0.05
+      ? `<div class="kspan ok">✓ <b>この結論は κ に依存しません。</b>`
+        + `κ を 0 から 1 のどこへ動かしても <b>${pct(sp.now)}%</b> のままです`
+        + `<span class="mk">論理・原理・実測だけで決まっている</span></div>`
+      : `<div class="kspan warn">⚠ <b>κ（仮置き）を 0〜1 で動かすと、事後確率は`
+        + ` <b>${pct(sp.lo)}% 〜 ${pct(sp.hi)}%</b> の間で動きます</b>`
+        + `<span class="md">幅 ${sp.span.toFixed(1)} ポイント</span>`
+        + `<br><span style="opacity:.85">いまは κ=${kap.toFixed(2)} で ${pct(sp.now)}%。`
+        + `${(sp.lo*100<tTest&&sp.hi*100>tTest)||(sp.lo*100<tTreat&&sp.hi*100>tTreat)
+            ? "<b>この幅は閾値をまたぎます ── 結論が κ の置き方で変わります。</b>"
+            : "この幅の中で閾値はまたぎません ── 結論は変わりません。"}</span></div>`;
+    const head = spanLine + (damped
       ? `所見が重なっています。<b>κ は組ごとに決めています</b> ── `
         + `素朴ベイズ <b>${pct(pn)}%</b> → 補正後 <b>${pct(p)}%</b>`
         + `<span class="md">${diff>=0?"−":"+"}${Math.abs(diff).toFixed(1)} ポイント</span>`
@@ -1417,7 +1444,7 @@ function drawVerdict(){
              + `実測から逆算した上限 0.32 の内側に置いた値で、測られた減衰率ではありません。` : "")
       : (S.some(s=>s.combo)
         ? `この組み合わせは、<b>原著が「揃ったとき」の尤度比を直接測っています</b>。個々の値を掛け算していません（κ は使いません）。`
-        : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">満額 κ=1</span>`);
+        : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">満額 κ=1</span>`));
     const rows = cls.map(c=>{
       const a=g[c], n=a.length;
       const mixed = n>1 && new Set(a.map(s=>s.dir>0)).size>1;
