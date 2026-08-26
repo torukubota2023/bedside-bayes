@@ -306,7 +306,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.11.0</span>
+    <span class="ver" id="verLabel">v2.12.0</span>
   </div>
 </header>
 
@@ -575,17 +575,19 @@ const DB = {
        note:"ゲシュタルト専用メタ解析16研究・C統計量0.80。原著は「臨床予測ルールと遜色ない精度」と結論。判断の拠り所は Heckerling 1990 の5項目（下の補助パネル参照）。⚠ この印象は診察を終えたあとの総合判断として測定された値で、個々の所見をすでに織り込んでいる。だからこの所見を適用しているあいだ、他の所見は採点外になる（掛け合わせると同じ情報を二度数える）。個別に積むなら印象を外す ── どちらの道も文献が実測した範囲に収まる（2026-08-25 副院長裁定）"},
       {id:"vital",cat:"バイタル", nm:"バイタル異常（呼吸数・脈拍・体温・SpO₂ のいずれか）", lp:1.3, ln:0.25,
        cin:[0.11,0.48], cl:"impression", tag:"der",
-       note:"LR− 0.25 (0.11–0.48) が Ebell 2020 の報告値。感度93%から LR+ を導出。この所見の本体は陰性側 ── すべて正常なら肺炎は考えにくい、という除外の道具。体温37.8℃超を陽性にすると、この所見は論理的に必ず陽性になる（体温は構成要素）ため採点外になる ── 同じ発熱を二度数えないための排他（2026-08-25）"},
+       excl:{ids:["fev"], neg:true},
+       note:"LR− 0.25 (0.11–0.48) が Ebell 2020 の報告値。感度93%から LR+ を導出。この所見の本体は陰性側 ── すべて正常なら肺炎は考えにくい、という除外の道具。体温37.8℃超を陽性にすると、この所見は論理的に必ず陽性になる（体温は構成要素）ため採点外になる ── 同じ発熱を二度数えないための排他（2026-08-25）。逆に、この所見を陰性（すべて正常）にすると「体温37.8℃超なし」が論理的に確定するので、そちらが採点外になる。内包は向きによって走る先が入れ替わる（2026-08-26 に陰性側の漏れを修正）"},
       {id:"fev",  cat:"バイタル", nm:"実測体温の上昇（37.8℃ 超）", lp:2.5, ln:0.7,
        ci:[2.0,3.1], cin:[0.6,0.8], ss:[0.375,0.85], cl:"impression", tag:"src",
        excl:{ids:["vital"], pos:true},
        note:"McGee EBM Box 32.1 / Appendix Table 71.1：12,000例超の統合で LR+ 2.5 (2.0–3.1)／LR− 0.7 (0.6–0.8)、感度16–75%・特異度44–95%。Heckerling の5項目①と同じ閾値。以前は Ebell 2020 の 2.52 を採り陰性側を「報告なし」としていたが、McGee は陰性尤度比を有意な値として報告しており、区間も 1 を含まない。熱が無いことは、弱いながら肺炎を否定する方向に働く"},
       {id:"crk",  cat:"聴診", nm:"クラックル（ラ音・水泡音・捻髪音）", lp:2.00, ln:0.80,
-       ci:[1.54,2.58], cl:"impression", tag:"src", ltag:"chk",
-       note:"統合LR+ 2.00 (1.54–2.58)。1.5–2.6 は値の範囲ではなく信頼区間。弱いが最も高感度で再現性がよい「気づく入口」。LR− はガイド記載 0.6–0.9 の幅があり未確定"},
+       ci:[1.54,2.58], cl:"alveolar", tag:"src", ltag:"chk",
+       note:"統合LR+ 2.00 (1.54–2.58)。1.5–2.6 は値の範囲ではなく信頼区間。弱いが最も高感度で再現性がよい「気づく入口」。LR− はガイド記載 0.6–0.9 の幅があり未確定。⚠ 2026-08-26 に cl を impression から alveolar へ移した ── 発熱（全身性の炎症反応）と肺胞の液体貯留は別の機序なのに、同じクラスタに置いて互いに減衰させていた。cl は「同じ生理学的機序のまとまり」と定義しているので、実態と食い違っていた"},
       {id:"ego",  cat:"聴診", nm:"ヤギ音（エゴフォニー / E-to-A）", lp:6.17, ln:0.96,
        ci:[1.34,18.0], cl:"consol", tag:"src", ltag:"chk",
-       note:"LR+ 6.17 (1.34–18.0)。信頼区間が極めて広い。病態非特異（実質化でも圧迫肺でも出る）で、無くても除外にならない"},
+       excl:{ids:["bron"], pos:true},
+       note:"LR+ 6.17 (1.34–18.0)。信頼区間が極めて広い。病態非特異（実質化でも圧迫肺でも出る）で、無くても除外にならない。⚠ この所見を取っているあいだ、気管支呼吸音は採点外になる ── どちらも「実質化した肺が 300 Hz を超える高周波を胸壁まで通す」という同じ物理を、同じ聴診器で、同じ部位で聴いている（McGee 第30章：正常肺はローパスフィルタとして働く）。打診濁音は刺激（叩打）も測っている量（機械インピーダンス）も違うので別枠でよい（2026-08-26 監査）。排他は陽性のときだけ ── 陰性のヤギ音（LR− 0.96 ＝ ほぼ無情報）は気管支呼吸音を何も織り込んでいないので、消してはいけない（2026-08-26 の独立検証で検出）"},
       {id:"bron", cat:"聴診", nm:"気管支呼吸音", lp:3.3, ln:0.9, ci:[2.3,4.8], cin:[0.8,0.9], ss:[0.165,0.95], cl:"consol", tag:"src",
        note:"McGee EBM Box 30.1 / 32.1：感度14–19%・特異度94–96%、LR+ 3.3 (2.3–4.8)／LR− 0.9 (0.8–0.9)。以前は 3.5 を採っていたが、ガイド表t22 が併記していた感度8–63%・特異度64–96% は一次資料に無く、その組からは 3.5 が出てこない。二次資料で確認できる 3.3 に揃えた"},
       {id:"dull", cat:"打診", nm:"限局した打診濁音", lp:2.62, ln:1.0,
@@ -634,14 +636,29 @@ const DB = {
        note:"Kalantri 感度88%・特異度83%。以前このアプリは感度57%・特異度86%（LR+ 4.1）と書いていたが、原著にその組は無く誤りだった。ガイド表t22 も同じ誤りを持っており、あわせて訂正する"},
       {id:"dull", cat:"打診", nm:"打診濁音（石様）", lp:4.8, ln:0.1,
        ci:[3.6,6.4], cin:[0.1,0.3], ss:[0.89,0.81], cl:"fluid", tag:"src",
-       note:"Kalantri 感度89%・特異度81%。以前は Wong 2009 の統合値 8.7 を使っていたが、他の所見が Kalantri である以上、掛け合わせる相手として出所が揃わない。感度と特異度が逆に書かれていた（81/89）誤りもここで直した"},
+       excl:{ids:["ap"]},
+       note:"Kalantri 感度89%・特異度81%。以前は Wong 2009 の統合値 8.7 を使っていたが、他の所見が Kalantri である以上、掛け合わせる相手として出所が揃わない。感度と特異度が逆に書かれていた（81/89）誤りもここで直した。⚠ この所見を取っているあいだ、聴打診法は採点外になる ── 同じ打診という刺激を、耳で聴くか聴診器で聴くかの違いにすぎない。同一コホートで聴打診法は全面的に劣り（LR+ 3.88／LR− 0.49 対 4.82／0.13。この画面の 4.8／0.1 は McGee の丸め）、多変量では脱落した。打診濁音を知ったあとに聴打診法が足す独立情報は、原著の解析上ほぼゼロ（2026-08-26 監査）"},
       {id:"rub",  cat:"聴診", nm:"胸膜摩擦音", lp:3.9, ln:1.0,
        ci:[0.8,18.7], cin:[0.9,1.0], ss:[0.05,0.99], nsg:1, cl:"pleura", tag:"src",
        note:"LR+ 3.9 だが 95%信頼区間は 0.8–18.7 で、下限が 1 を割っている（McGee Appendix Table 71.1）。だから EBM Box 35.1 でも 30.3 でも「有意でない」と印字されている。感度5%・特異度99%、278例中の陽性はごく少数。特異度が高いだけでは使える所見にならないという例として、確率を動かさない扱いで残してある"}
     ],
+    /* 組み合わせの実測値（2026-08-26 監査）。κ でも cl 統合でも届かない相関があるため、
+       原著が「その組み合わせで」測った尤度比をそのまま使う。
+       Kalantri 2007 Table 4・本文：多変量で独立に残った2所見（胸郭拡張左右差 OR 5.22／
+       打診濁音 OR 12.80、2所見モデル AUC 0.88）について、両方陽性 LR+ 8.57 (5.4–13.4)・
+       感度0.73/特異度0.91、両方陰性 LR− 0.29 (0.19–0.45)。
+       ★なぜ κ では届かないか：相関の源が生理ではなく**診察者**だから。著者自身が Discussion 第4限界で
+       「胸郭拡張を非対称と見た検者は、続く打診・呼吸音も異常に取りやすい」と書いている。
+       cl は機序で束ねるので、この依存には原理的に届かない（同一クラスタにしても 86.8% にしかならず、
+       実測を再現するには κ=0.036＝最強の1つだけ採る、が要る）。 */
+    combos:[
+      {ids:["exp","dull"], lp:8.57, ci:[5.4,13.4], ln:0.29, cin:[0.19,0.45],
+       nm:"胸郭拡張の左右差 ＋ 打診濁音", src:"Kalantri 2007 Table 4・本文（多変量2所見モデル AUC 0.88）",
+       note:"この2つは、原著が「揃ったとき」の尤度比を直接測っている。個々の 8.1 と 4.8 を掛けると 38.9 になるが、実測は 8.57 ── 掛け算は原著の95%信頼区間の外に出る。相関の源は機序ではなく診察者にある"}
+    ],
     cases:[
       {t:"64歳・労作時呼吸困難／外来", d:"事前20%。振盪低下なし、拡張左右差なし。", pre:0.20, set:{fre:-1, exp:-1}},
-      {t:"71歳・悪性腫瘍既往で呼吸困難", d:"事前35%。右下背部に濁音、振盪低下、拡張左右差。", pre:0.35, set:{dull:1, fre:1, exp:1}}
+      {t:"71歳・悪性腫瘍既往で呼吸困難", d:"事前35%。右下背部に濁音、振盪低下、拡張左右差。★この2つは原著が組み合わせで測っているので、掛け算ではなく実測値が使われる。", pre:0.35, set:{dull:1, fre:1, exp:1}}
     ]
   },
   hf: {
@@ -657,16 +674,17 @@ const DB = {
        ci:[4.9,25.0], cl:"filling", tag:"src", ltag:"chk",
        note:"LR+ 11 (4.9–25.0)。観察者間一致は低く、救急外来の騒音下では聴取困難。左室充満圧上昇の直接の現れ"},
       {id:"jvd", cat:"視診（頸部）", nm:"頸静脈怒張", lp:5.1, ln:0.66, cl:"venous", tag:"src",
-       note:"ガイド表t22 の正本値。中心静脈圧の評価とは別指標なので、Davison の 9.7/10.4 と混同しない"},
+       excl:{ids:["hjr"], pos:true},
+       note:"ガイド表t22 の正本値。中心静脈圧の評価とは別指標なので、Davison の 9.7/10.4 と混同しない。⚠ この所見が陽性のあいだ、肝頸静脈逆流は採点外になる ── 腹部圧迫試験は「安静時の頸静脈が正常に見える患者で充満圧上昇を拾う」ために作られた手技で、McGee Box 48.1 でも感度が高い（腹部圧迫 55–84% 対 JVD 10–58%。範囲の下端どうしなら5倍、上端どうしでも1.4倍）。頸静脈がすでに怒張して見える患者で腹部圧迫が陰性になることは、物理的にほぼ起こらない。逆は成り立たない ── JVD が陰性なら肝頸静脈逆流は満額で効く（そこがこの手技の存在理由。2026-08-26 監査）"},
       {id:"hjr", cat:"触診", nm:"肝頸静脈逆流", lp:6.4, ln:0.79, cl:"venous", tag:"chk",
        note:"広く引用されるが Wang 2005 Table 3 を確認できていない。機関アクセスでの確認待ち"},
       {id:"crk", cat:"聴診（肺）", nm:"ラ音（crackles）", lp:2.8, ln:0.51,
        cin:[0.37,0.70], cl:"filling", tag:"src", ltag:"src",
        note:"LR− 0.51 (0.37–0.70) は原著の報告値。無くてもうっ血は否定できない。III音・BNP と同じ「充満圧上昇」の別の窓"},
-      {id:"mur", cat:"聴診（心）", nm:"心雑音（新規を含む）", lp:2.6, ln:0.81, cl:"valve", tag:"chk",
-       note:"Wang 2005 Table 3 を確認できていない。abstract の 2.6 は発作性夜間呼吸困難の値なので、取り違えの可能性がある"},
-      {id:"ede", cat:"視診（下肢）", nm:"下腿浮腫", lp:2.3, ln:0.64, cl:"venous", tag:"chk",
-       note:"Wang 2005 Table 3 を確認できていない。abstract の LR− 0.64 は心電図異常の値なので、取り違えの可能性がある"},
+      {id:"mur", cat:"聴診（心）", nm:"心雑音（新規を含む）", lp:2.6, ln:0.81, cl:"valve", tag:"chk", nsg:1,
+       note:"確率を動かさない扱いに変えた（2026-08-26 監査）。McGee 6th は心雑音を Appendix Table 71.1 で LR+ 2.2 (0.9–5.7) と報告し区間が 1 をまたぐ（有意でない）。同表はこのアプリの 2.60 との食い違いも名指ししている。加えて Wang 2005 Table 3 は未確認で、abstract の 2.6 は発作性夜間呼吸困難の値なので取り違えの可能性がある"},
+      {id:"ede", cat:"視診（下肢）", nm:"下腿浮腫", lp:2.3, ln:0.64, cl:"venous", tag:"chk", nsg:1,
+       note:"確率を動かさない扱いに変えた（2026-08-26 監査）。McGee 6th は下腿浮腫を Box 48.1・48.2 の両方で「有意でない」と印字し、Appendix Table 71.1 は区間つきで LR+ 1.4 (0.6–3.2) としたうえで、このアプリの 2.30 との食い違いを名指ししている。加えて Wang 2005 Table 3 は未確認で、abstract の LR− 0.64 は心電図異常の値なので取り違えの可能性がある。特異度が高そうに見える所見でも、症例数と区間が支えなければ確率は動かせない ── 胸膜摩擦音と同じ扱い"},
       {id:"ort", cat:"問診", nm:"起坐呼吸", lp:2.2, ln:0.65, cl:"filling", tag:"chk",
        note:"一次文献未確認。臥位で肺うっ血が悪化する現象そのものなので、III音・ラ音と同じ機序に属する"},
       {id:"cxr", cat:"参考：検査", nm:"胸部X線の肺静脈うっ血", lp:12.0, ln:0.48,
@@ -749,6 +767,7 @@ function H(p){ p=clamp(p,1e-9,1-1e-9); return -(p*Math.log2(p)+(1-p)*Math.log2(1
    「どの生理を測っているか」が読めないと、なぜ減衰するのかが伝わらない。 */
 const CLNAME = {
   impression:"全体的な臨床像", consol:"肺の実質化", fluid:"胸腔の液体貯留",
+  alveolar:"肺胞の液体貯留",
   expand:"半胸郭の可動性低下", pleura:"胸膜の炎症",
   filling:"心充満圧の上昇", venous:"体静脈のうっ滞", valve:"弁の異常",
   airway:"気流の閉塞", hyper:"肺の過膨張", expose:"曝露歴"
@@ -817,16 +836,49 @@ function eigUnknown(f){ return eigInputs(f) === null; }
    いるものに κ で部分割引を掛けるのは、根拠のない上乗せを許すことになるため。
      excl:{ids:"*"}            … 適用中（陽性でも陰性でも）、パネル内の他の全所見を採点外に
      excl:{ids:[...], pos:true} … 陽性のときだけ、指定 id を採点外に（例: 体温37.8℃超 ⊃ バイタル異常）
+     excl:{ids:[...], neg:true} … 陰性のときだけ（例: バイタルすべて正常なら「発熱なし」は論理的に確定する）
+     ★内包は向きによって走る先が変わる。「体温が高い」は「バイタルのどれかが異常」を含むが、
+       「体温が高くない」は何も含まない。逆に「バイタルすべて正常」は「発熱なし」を含む。
+       陽性側と陰性側で、内包する側とされる側が入れ替わる（2026-08-26 監査で陰性側の漏れを検出）。
    採点外の所見は、事後確率・信頼区間・機序パネル・次の一手・到達可能域のすべてから除く。
    トグルの状態は消さない（外せば復活）。返り値は id → 内包元の所見名。 */
 function exclInfo(state){
   const S = state || st;
-  const out = {};
+  /* まず「誰が誰を消すか」を集める */
+  const edges = [];
   panel.forEach(f=>{
     const e = f.excl; if(!e) return;
     const dir = S[f.id]||0;
     if(!dir) return;
     if(e.pos && dir < 0) return;
+    if(e.neg && dir > 0) return;
+    const ids = e.ids === "*" ? panel.filter(g=>g.id!==f.id).map(g=>g.id) : e.ids;
+    ids.forEach(id=>{ if(S[id]) edges.push({from:f, to:id}); });
+  });
+  /* 相互排他（矛盾した入力）の解消。
+     例: 肺炎で「バイタルすべて正常（陰性）」と「体温37.8℃超（陽性）」を同時に押すと、
+     互いを採点外にして**両方が消え、事前確率に戻る**（2026-08-26 の独立検証で検出）。
+     臨床的には矛盾入力だが UI は止めないので、ここで裁く ──
+     情報量の大きいほう（|log LR| が大きいほう）を残し、小さいほうを消す。 */
+    const strength = id => {
+    const g = panel.find(x=>x.id===id); if(!g) return 0;
+    return Math.abs(Math.log(lrOf(g, S[id]>0)));
+  };
+  const dropped = {};
+  edges.forEach(a=>{
+    const back = edges.find(b=>b.to===a.from.id && b.from.id===a.to);
+    if(!back) return;                                   // 一方向なら裁定不要
+    if(strength(a.from.id) < strength(a.to)) dropped[a.from.id] = 1;   // 弱いほうの排他を無効に
+  });
+  const out = {};
+  edges.forEach(e=>{ if(!dropped[e.from.id] && !out[e.to]) out[e.to] = e.from.nm; });
+  /* 適用されていない所見（S[id] が 0）も、被内包側として印を付ける（表示用） */
+  panel.forEach(f=>{
+    const e = f.excl; if(!e) return;
+    const dir = S[f.id]||0;
+    if(!dir || dropped[f.id]) return;
+    if(e.pos && dir < 0) return;
+    if(e.neg && dir > 0) return;
     const ids = e.ids === "*" ? panel.filter(g=>g.id!==f.id).map(g=>g.id) : e.ids;
     ids.forEach(id=>{ if(!out[id]) out[id] = f.nm; });
   });
@@ -840,8 +892,28 @@ function exclInfo(state){
 function steps(state){
   const S = state || st;
   const ex = exclInfo(S);
-  const on = panel.filter(f=>S[f.id] && !ex[f.id]);
+  let on = panel.filter(f=>S[f.id] && !ex[f.id]);
   const w = {}; const out=[];
+  /* 組み合わせの実測値（combos）が成立していれば、その2所見を1ステップに置き換える。
+     掛け算より前に処理する ── κ を掛けてから足すのでは、実測値が減衰してしまう。
+     向きは揃っている必要がある（全部陽性 or 全部陰性）。原著が測ったのはその2通りだけで、
+     食い違う向きの組み合わせは報告されていないため、そのときは従来どおり個別に扱う。 */
+  const used = {};
+  (DB[key].combos||[]).forEach(c=>{
+    const fs = c.ids.map(id=>panel.find(f=>f.id===id));
+    if(fs.some(f=>!f || !S[f.id] || ex[f.id] || used[f.id])) return;
+    const dirs = fs.map(f=>S[f.id]>0);
+    if(new Set(dirs).size !== 1) return;          // 向きが割れていたら実測値は使えない
+    const plus = dirs[0];
+    const raw = plus ? c.lp : c.ln;
+    /* combo は2所見をまとめた1ステップだが、機序としては構成所見の cl を消費している。
+       消費を飲むと、同じ機序の3つ目（例: 胸水の触覚振盪）が減衰せずに満額で乗る。 */
+    fs.forEach(f=>{ used[f.id]=1; w[f.cl]=(w[f.cl]||0)+1; });
+    out.push({f:{id:"combo:"+c.ids.join("+"), nm:c.nm, cl:"combo:"+c.ids.join("+"), tag:"src",
+                 note:c.note, ci:c.ci, cin:c.cin, lp:c.lp, ln:c.ln},
+              dir: plus?1:-1, raw, n:0, eff:raw, damp:false, combo:c});
+  });
+  on = on.filter(f=>!used[f.id]);
   // strongest first within each cluster keeps the shrinkage honest
   on.slice().sort((a,b)=>Math.abs(Math.log(lrOf(b,S[b.id]>0)))-Math.abs(Math.log(lrOf(a,S[a.id]>0))))
     .forEach(f=>{
@@ -1183,12 +1255,16 @@ function drawRank(){
     const b = postOf(withF(f0.id, -1));
     /* 情報量は【一組】から出す。予告に使う数と混ぜると確率の帳尻が合わなくなる（eigInputs 参照）。
        だから頻度も事後確率も、ここでは m だけから作る。 */
+    /* 情報量は【一組】から出す。ただし**着地点は実挙動（a／b＝postOf）を使う** ──
+       combo や excl が働く所見では、素の尤度比から出した着地点が実際と違うため、
+       「値を下げたはずの所見が bit で1位に居座る」ことが起きる（2026-08-26 の独立検証で検出:
+       胸水で打診濁音を陽性にすると、胸郭拡張の左右差が 0.329 bit で1位に出るが、
+       実挙動基準では 0.130 bit で最下位）。頻度（陽性が出る見込み）は従来どおり感度・特異度から。 */
     const m = eigInputsDamped(f0, used[f0.cl]||0);
     let eig = null;
     if(m){
       const ppE = clamp(p*m.sens + (1-p)*(1-m.spec), 1e-9, 1-1e-9);
-      const aE = IL(z0 + Math.log(m.lp)), bE = IL(z0 + Math.log(m.ln));
-      eig = H(p) - (ppE*H(aE) + (1-ppE)*H(bE));
+      eig = H(p) - (ppE*H(a) + (1-ppE)*H(b));
     }
     const zc = (zoneOf(a)!==zoneOf(p) ? pp : 0) + (zoneOf(b)!==zoneOf(p) ? 1-pp : 0);
     const nd = used[f0.cl]||0;
@@ -1272,19 +1348,26 @@ function drawVerdict(){
         + `素朴ベイズ <b>${pct(pn)}%</b> → 相関補正後 <b>${pct(p)}%</b>`
         + `<span class="md">${diff>=0?"−":"+"}${Math.abs(diff).toFixed(1)} ポイント</span>`
         + `<span class="mk">κ=${kap.toFixed(2)}</span>`
-      : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">κ=${kap.toFixed(2)}</span>`;
+      : (S.some(s=>s.combo)
+        ? `この組み合わせは、<b>原著が「揃ったとき」の尤度比を直接測っています</b>。個々の値を掛け算していません。<span class="mk">κ=${kap.toFixed(2)}</span>`
+        : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">κ=${kap.toFixed(2)}</span>`);
     const rows = cls.map(c=>{
       const a=g[c], n=a.length;
       const mixed = n>1 && new Set(a.map(s=>s.dir>0)).size>1;
       const names = a.map(s=>esc(s.f.nm)+(s.dir>0?"（+）":"（−）")).join("　");
       const prod = a.reduce((x,s)=>x*s.eff,1);
-      const tag = mixed
-        ? `<span class="ct clash">⚠ 食い違い ── 同じ機序なのに向きが逆。どちらかが誤りの可能性。取り直しを</span>`
-        : (n>1
-          ? `<span class="ct agree">一致 ${n}件 ── 確率はほぼ動かないが、取り違えの可能性は下がる</span>`
-          : `<span class="ct alone">単独 ── 取り違えの可能性が残る</span>`);
+      /* 組み合わせの実測値を使った行は、「単独／一致」の枠組みに乗らない
+         （2所見を1つの測定として扱っているため）。専用の説明にする。内部の cl 名は出さない。 */
+      const cb = a.length===1 && a[0].combo ? a[0].combo : null;
+      const tag = cb
+        ? `<span class="ct agree">組み合わせの実測値 ── この2つが揃ったときの尤度比を、原著が直接測っている。掛け算はしない</span>`
+        : (mixed
+          ? `<span class="ct clash">⚠ 食い違い ── 同じ機序なのに向きが逆。どちらかが誤りの可能性。取り直しを</span>`
+          : (n>1
+            ? `<span class="ct agree">一致 ${n}件 ── 確率はほぼ動かないが、取り違えの可能性は下がる</span>`
+            : `<span class="ct alone">単独 ── 取り違えの可能性が残る</span>`));
       return `<li><span class="contrib">オッズ寄与 ×${prod.toFixed(2)}</span>`
-           + `<span class="cl">${esc(CLNAME[c]||c)}</span>${tag}`
+           + `<span class="cl">${esc(cb ? "2所見をまとめて測った値" : (CLNAME[c]||c))}</span>${tag}`
            + `<div class="fs">${names}</div></li>`;
     }).join("");
     const foot = `<b>確率を動かすのは「別の機序の所見」です。</b>`
