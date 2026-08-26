@@ -159,6 +159,7 @@ svg{display:block;width:100%;height:auto}
 .mech .cl{font-weight:700;color:var(--ink)}
 .mech .fs{color:var(--ink-2)}
 .mech .ct{font-size:11.5px;margin-left:4px}
+.heckres{margin:10px 0 6px;padding:10px 12px;background:#EEF6F1;border-left:4px solid #2E6B45;border-radius:8px;font-size:13.5px;line-height:1.7;color:#22523A}
 .kspan{margin:0 0 10px;padding:9px 12px;border-radius:9px;font-size:13.5px;line-height:1.7}
 .kspan.ok{background:#EEF6F1;border-left:4px solid #2E6B45;color:#22523A}
 .kspan.warn{background:#FDF4EF;border-left:4px solid #B5651F;color:#7A4413}
@@ -310,7 +311,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.13.0</span>
+    <span class="ver" id="verLabel">v2.14.0</span>
   </div>
 </header>
 
@@ -615,9 +616,18 @@ const DB = {
        note:"McGee EBM Box 29.1。原著 Diehr 1984 は全1819例中 肺炎48例で、感度5%・特異度100%。LR+ はごく少数例（肺炎約2例 対 非肺炎約2例）で決まっており極めて不安定。McGee も LR− は「有意でない」としている。陽性は強いが陰性は無情報という非対称の典型"}
     ],
     heckerling:{
-      title:"Heckerling 1990 の5項目 — 「肺炎らしい」を数えられる形にする",
+      title:"Heckerling 1990 の5項目 — 掛け算を使わない、測られた組み合わせ",
       items:["体温 37.8℃ 超","脈拍 100/分 超","ラ音（crackles）","呼吸音の減弱","喘息の既往がない"],
-      note:"該当項目が多いほど肺炎の確率が上がる（導出1134例・検証302例、ROC 0.82）。④呼吸音減弱と⑤喘息の既往は上の所見一覧にないので、印象を作る材料として自分で確認する。項目数ごとの確率は原著 Table 1 にあるが未確認のため、ここでは数えるだけに留める。"
+      /* ★ 項目数ごとの尤度比（2026-08-27 追加）。
+         出所: Metlay 1997（PMID 9356004）Table 4 と本文の逐語
+         "based on a prevalence of pneumonia of 5%, the presence of 0, 1, 2, 3, 4, or 5 findings
+          yields probabilities of pneumonia of <1%, 1%, 3%, 10%, 25% and 50%, respectively"
+         有病率5%（事前オッズ 0.0526）から逆算した。0項目は原文が「<1%」なので 0.9% と置いた。
+         ★これは掛け算ではない ── 1134例で、その項目数だった患者を実際に数えた値。 */
+      lrByCount:[0.17, 0.19, 0.59, 2.11, 6.33, 19.0],
+      probAt5:["<1%","1%","3%","10%","25%","50%"],
+      src:"Heckerling PS, et al. Ann Intern Med. 1990;113(9):664-670（PMID 2221647）。導出1134例・検証150+152例、ROC 0.82／0.82／0.76。項目数ごとの確率は Metlay 1997 Table 4 経由（原著ノモグラムは未入手）",
+      note:"④呼吸音の減弱と⑤喘息の既往は上の所見一覧にないので、ここで自分で確認する。⚠ 逆算した尤度比は、原著が有病率5%で示した確率から戻したもの。原著のノモグラム（Ann Intern Med 1990）を取り寄せれば、どの事前確率でも正確に引ける。"
     },
     cases:[
       {t:"38歳・発熱と咳3日／外来", d:"事前10%。バイタル異常なし、聴診で異常なし。", pre:0.10, set:{vital:-1, crk:-1, dull:-1}},
@@ -726,10 +736,25 @@ const DB = {
       "Holleman DR Jr, Simel DL. Does the clinical examination predict airflow limitation? JAMA. 1995;273(4):313-9. PMID 7815660",
       "Oshaug K, Halvorsen PA, Melbye H. Should chest examination be reinstated in the early diagnosis of chronic obstructive pulmonary disease? Int J Chron Obstruct Pulmon Dis. 2013;8:369-77. PMID 23983462（プライマリケア375例、過共鳴）"
     ],
+    /* ── 組み合わせの実測値 ────────────────────────────────────
+       Straus 2002（PMID 12220364・PMC1495102）が、3所見すべてが揃った患者だけを数えて
+       尤度比を報告している。個々の 5.6 × 4.0 × 6.7 を掛けると 150 になるが、実測は 33。
+       ★ 抄録は 33／0.18、本文は 59／0.3 と論文の中で食い違う（2026-08-27 に PMC で両方を逐語確認）。
+         59 は著者が互いに調整し直した尤度比 4.4×2.9×4.6＝58.7 と一致するので、
+         「実際に3つ揃った人を数えた値」は 33 のほうと読み、保守側の 33 を採る（副院長裁定 2026-08-27）。
+       ★ この3所見は 2026-08-27 に出所を Straus 2002 の単一コホートへ統一した。
+         揃っていないコホートの値に組み合わせの実測値を当てると、測られていない数字に
+         実測のラベルを貼ることになる。 */
+    combos:[
+      {ids:["hxcopd","whz","fet"], lp:33, ln:0.18,
+       nm:"COPD 既往 ＋ 聴診の喘鳴 ＋ 強制呼気時間>9秒",
+       src:"Straus 2002 抄録（本文は 59／0.3。保守側の抄録値を採用）",
+       note:"この3つは、原著が「揃ったとき」の尤度比を直接測っている。個々の 5.6・4.0・6.7 を掛けると 150 になるが、実測は 33 ── 掛け算は4.5倍に膨らむ。⚠ 抄録33／本文59 と論文内で食い違い、59 は調整後の積（4.4×2.9×4.6）と一致する。保守側の 33 を採った"}
+    ],
     f:[
-      {id:"whz", phen:"airflow", cat:"聴診", nm:"聴診上の喘鳴", lp:2.7, ln:0.9,
-       ci:[1.7,4.2], cl:"airway", tag:"src",
-       note:"原著は LR 2.7 (1.7–4.2)、かつ多変量モデルでは有意にならなかったと明記し、「喘鳴のような個別の徴候への依存を減らすべき」と結論している。喘鳴は気流閉塞の確定ではなく、鑑別の入口として使う"},
+      {id:"whz", phen:"airflow", cat:"聴診", nm:"聴診上の喘鳴", lp:4.0, ln:0.8,
+       ci:[1.6,9.9], cin:[0.7,0.9], ss:[0.35,0.89], cl:"airway", tag:"src",
+       note:"Straus 2002（PMID 12220364・6か国7施設161例）Table 2: LR+ 4.0 (1.6–9.9)、感度0.35/特異度0.89、LR− 0.8 (0.7–0.9)。多変量の調整後は 2.9。★2026-08-27 に Straus 2000 の 2.7 (1.7–4.2) から差し替えた ── 同じ論文が「3所見が揃ったときの尤度比」を実測しており、組み合わせの実測値を使うには出所を同じコホートに揃える必要があるため（胸水パネルを Kalantri 2007 に統一したのと同じ理由）"},
       {id:"pk", phen:"exposure", mod:"hist",  cat:"問診", nm:"喫煙 40 pack-years 超", lp:8.3, ln:1.0, cl:"expose", tag:"src",
        note:"Straus 2000 の多変量で有意だった4因子のひとつ。閾値は40 pack-years（70ではない）。感度・特異度が公表されていないため、この所見だけは bit を計算できない。Oshaug 2013 は同じ40 pack-years に感度19%・特異度95%・LR 4.1 (2.0–8.2) を報告しているが、対象が「すでに喘息か COPD と診断されている患者」で母集団が違うので、数値を借りてこない"},
       {id:"lar", phen:"hyperinf", cat:"触診", nm:"最大喉頭高 4cm 以下", lp:3.6, ln:0.7, ci:[2.1,6.0], cin:[0.6,0.8], ss:[0.36,0.90], cl:"hyper", tag:"src",
@@ -737,11 +762,14 @@ const DB = {
       {id:"hyp", phen:"hyperinf", cat:"打診", nm:"過共鳴", lp:9.5, ln:0.8, cl:"hyper", tag:"src",
        ci:[3.7,23.7], ss:[0.208,0.978],
        note:"Oshaug 2013（プライマリケア375例）Table 3：感度20.8%・特異度97.8%、LR+ 9.5 (3.7–23.7)。陰性側は同じ2値から (100−20.8)÷97.8 ＝ 0.81。区間の下限が 3.7 まで下がる点は見落とせない。なお McGee 6th ed の EBM Box 29.2 / 33.1 は、この Oshaug と Badgett 1993 を統合して LR+ 7.3 と印字している。7.3 も 9.5 もどちらも正しく、統合値を採るか原著単独値を採るかの違いである。ここでは対象疾患の定義（気管支拡張薬後 FEV1/FVC<0.7）が明確な Oshaug 単独値を採った"},
+      {id:"hxcopd", phen:"airflow", mod:"hist", cat:"問診", nm:"本人が COPD と言われたことがある", lp:5.6, ln:0.5,
+       ci:[2.9,10.9], cl:"airway", tag:"src",
+       note:"Straus 2002 Table 2: LR+ 5.6 (2.9–10.9)、多変量の調整後は 4.4／0.5。★2026-08-27 新設 ── この所見・聴診の喘鳴・強制呼気時間>9秒 の3つが揃ったときの尤度比を、同じ論文が直接測っている（組み合わせの実測値）。⚠ 参照基準はスパイロメトリーなので、過去にスパイロメトリーを受けて COPD と言われた患者では、参照基準を先取りした情報になりうる"},
       {id:"swz", phen:"airflow", mod:"hist", cat:"問診", nm:"患者本人が申告する喘鳴", lp:3.1, ln:0.58, cl:"airway", tag:"chk",
-       note:"Straus 2000 の abstract に該当する値がない（abstract にあるのは「COPDの自己申告歴 LR 7.3」で別の項目）。一次未確認"},
-      {id:"fet", phen:"airflow", cat:"聴診", nm:"強制呼気時間 8秒超（60歳以上）", lp:4.08, ln:1.0,
-       ci:[2.54,6.79], cl:"airway", tag:"src",
-       note:"この所見は「ある／ない」の2択ではなく3区分で報告されている。Schapira 1993 の60歳以上では 4〜6秒 で LR 0.42（むしろ気流閉塞を否定する方向）、6〜8秒 で 2.19、8秒超 で 4.08 (2.54–6.79)。つまり「8秒を超えなかった」は「3〜6秒だった」を意味しないので、単一の陰性尤度比が定義できない。McGee EBM Box 31.1 も同じ構造で、9秒以上 3.9／3〜9秒 有意でない／3秒未満 0.2 とし、陰性側の欄を空けている"}
+       note:"⚠ 一次未確認のまま。Straus 2000 の abstract に該当する値がない（abstract にあるのは「COPD の自己申告歴 LR 7.3」で別の項目）。★2026-08-27、その「自己申告歴」にあたる所見は Straus 2002 の実測値 5.6 で別に新設したので、この行は出所が固まるまで参考値として置いてある。原著（JAMA 2000;283:1853-7）を取り寄せたら確定する"},
+      {id:"fet", phen:"airflow", cat:"聴診", nm:"強制呼気時間 9秒超", lp:6.7, ln:1.0,
+       ci:[2.1,21.1], cl:"airway", tag:"src",
+       note:"Straus 2002 Table 2: >9秒 で LR+ 6.7 (2.1–21.1)。★2026-08-27 に Schapira 1993 の「8秒超 4.08」から差し替えた ── 組み合わせの実測値（3所見で LR 33）と出所を揃えるため。手技は原著 Methods 逐語「座位で最大吸気後、口を開けて力いっぱい吐かせ、胸骨上窩の気管上に聴診器を当てて呼気音が聴こえる時間」。⚠ 陰性側の欄は空けてある: この所見は3区分で報告されており（Straus 2002 は 6〜9秒 1.8 [0.77–4.0]＝有意でない、<6秒 0.6 [0.5–0.8]）、「9秒を超えなかった」は「6秒未満だった」を意味しないので単一の陰性尤度比が定義できない。Schapira 1993 の60歳以上でも同じ構造（4〜6秒 0.42／6〜8秒 2.19／8秒超 4.08）"},
     ],
     cases:[
       {t:"63歳・47年間 2箱/日の喫煙者（94 pack-years）", d:"事前25%。喘鳴を自覚、聴診でも喘鳴。", pre:0.25, set:{pk:1, swz:1, whz:1}},
@@ -926,7 +954,7 @@ function steps(state){
     /* combo は2所見をまとめた1ステップだが、機序としては構成所見の cl を消費している。
        消費を飲むと、同じ機序の3つ目（例: 胸水の触覚振盪）が減衰せずに満額で乗る。 */
     fs.forEach(f=>{ used[f.id]=1; w[f.cl]=(w[f.cl]||0)+1; });
-    out.push({f:{id:"combo:"+c.ids.join("+"), nm:c.nm, cl:"combo:"+c.ids.join("+"), tag:"src",
+    out.push({f:{id:"combo:"+c.ids.join("+"), nm:c.nm, cl:"combo:"+c.ids.join("+"), ids:c.ids, tag:"src",
                  note:c.note, ci:c.ci, cin:c.cin, lp:c.lp, ln:c.ln},
               dir: plus?1:-1, raw, n:0, eff:raw, damp:false, combo:c});
   });
@@ -1267,7 +1295,8 @@ function drawFindings(){
 
 /* 「総合的な臨床印象」は原著がそのまま医師の判断を評価したもので、
    何を見て判断するかは書かれていない。Heckerling 1990 の5項目を数える形で補う。
-   確率は出さない（項目数ごとの確率は原著 Table 1 にあるが未確認のため）。 */
+   ★2026-08-27: 項目数ごとの実測尤度比を Metlay 1997 経由で入手したので、確率も出すようにした。
+   これは掛け算を通らない「もう一つの道」── ベイズ計算と食い違ったら、それ自体が読む材料になる。 */
 let heckState={};
 function drawHeck(){
   const el=document.getElementById("heck"); if(!el) return;
@@ -1279,7 +1308,20 @@ function drawHeck(){
     <div class="heckbody">
       ${H.items.map((t,i)=>`<label class="heckitem"><input type="checkbox" data-h="${i}"${heckState[i]?" checked":""}> ${esc(t)}</label>`).join("")}
       <div class="heckcount">該当 <b>${n}</b> / 5 項目</div>
+      ${H.lrByCount ? (()=>{
+        const lr = H.lrByCount[n];
+        const o = pre/(1-pre)*lr, pp = o/(1+o);
+        return `<div class="heckres">
+          <b>組み合わせの実測 尤度比 ${lr}</b>
+          <span class="mk">原著の有病率5%では ${esc(H.probAt5[n])}</span><br>
+          いまの事前確率 ${pct(pre)}% から → <b>${pct(pp)}%</b>
+          <div class="note" style="margin-top:6px">
+            <b>これは掛け算ではありません。</b>1134例で、その項目数だった患者を実際に数えた値です ──
+            だから κ（相関補正）は要りません。上のベイズ計算とは<b>別の道</b>で、
+            同じ患者を評価しています。食い違ったら、それ自体が情報です。
+          </div></div>`;})() : ""}
       <div class="note">${esc(H.note)}</div>
+      ${H.src ? `<div class="note" style="opacity:.85;margin-top:4px">出典: ${esc(H.src)}</div>` : ""}
     </div></details>`;
   el.querySelectorAll("input[data-h]").forEach(b=>b.onchange=()=>{ heckState[+b.dataset.h]=b.checked; drawHeck(); });
 }
@@ -1454,7 +1496,7 @@ function drawVerdict(){
          （2所見を1つの測定として扱っているため）。専用の説明にする。内部の cl 名は出さない。 */
       const cb = a.length===1 && a[0].combo ? a[0].combo : null;
       const tag = cb
-        ? `<span class="ct agree">組み合わせの実測値 ── この2つが揃ったときの尤度比を、原著が直接測っている。掛け算はしない</span>`
+        ? `<span class="ct agree">組み合わせの実測値 ── この${cb.ids.length}つが揃ったときの尤度比を、原著が直接測っている。掛け算はしない</span>`
         : (mixed
           ? `<span class="ct clash">⚠ 食い違い ── 同じ機序なのに向きが逆。どちらかが誤りの可能性。取り直しを</span>`
           : (n>1
@@ -1467,7 +1509,7 @@ function drawVerdict(){
               }).join("")
             : `<span class="ct alone">単独 ── 取り違えの可能性が残る</span>`));
       return `<li><span class="contrib">オッズ寄与 ×${prod.toFixed(2)}</span>`
-           + `<span class="cl">${esc(cb ? "2所見をまとめて測った値" : (CLNAME[c]||c))}</span>${tag}`
+           + `<span class="cl">${esc(cb ? `${cb.ids.length}所見をまとめて測った値` : (CLNAME[c]||c))}</span>${tag}`
            + `<div class="fs">${names}</div></li>`;
     }).join("");
     const foot = `<b>確率を動かすのは「別の機序の所見」です。</b>`
