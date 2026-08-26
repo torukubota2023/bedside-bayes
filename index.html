@@ -333,12 +333,12 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
       <div class="tsrc" id="tSrc"></div>
     </div>
     <div class="ctrl">
-      <label for="kap">所見の相関補正 κ <b id="kapV">1.00</b></label>
-      <input type="range" id="kap" min="0" max="1" step="0.05" value="1">
+      <label for="kap">所見の相関補正 κ <b id="kapV">0.25</b></label>
+      <input type="range" id="kap" min="0" max="1" step="0.05" value="0.25">
       <div class="note" style="margin-top:2px">同じ機序の2つ目以降の所見を <code>logLR × κⁿ</code> に減衰させる摘み。
-        <b>既定は κ=1（減衰なし＝教科書どおりの掛け算）</b>、<b>κ=0</b> は「同じ機序は最強の1つだけ」と同値。
-        <b>減衰率に文献の裏付けは無いので、既定では割り引かない</b>（理由は下の「計算式と前提」）。
-        動かして結論が壊れるなら、その結論はもともと脆い。</div>
+        <b>既定は κ=0.25</b>、<b>κ=1</b> が素朴ベイズ（教科書どおりの掛け算）、<b>κ=0</b> は「同じ機序は最強の1つだけ」と同値。<br>
+        <b>0.25 の根拠:</b> 組み合わせの実測値から逆算すると <b>κ ∈ [0, 0.32]</b>（Kalantri 2007）。
+        0.25 はその中、旧既定の 0.75 は外だった。動かして結論が壊れるなら、その結論はもともと脆い。</div>
     </div>
   </div>
 </section>
@@ -746,7 +746,7 @@ const DB = {
 let key = "cap";
 let panel = clone(DB[key].f);
 let st = {};            // id -> 1 | -1 | 0
-let pre = DB[key].pre, tTest = DB[key].tTest, tTreat = DB[key].tTreat, kap = 1;
+let pre = DB[key].pre, tTest = DB[key].tTest, tTreat = DB[key].tTreat, kap = 0.25;
 
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 const L = p => Math.log(p/(1-p));
@@ -1366,8 +1366,7 @@ function drawVerdict(){
     /* κ=1（既定）では減衰しない。そのとき「相関補正後」と名乗ると、補正していないのに
        補正したように読める。実測の組み合わせが無いことを、そのまま書く。 */
     const head = (damped && kap >= 1)
-      ? `同じ機序の所見が重なっています。<b>この組み合わせを実際に測った研究はありません</b>から、`
-        + `個々の尤度比を掛けた値をそのまま出しています。<br>`
+      ? `同じ機序の所見が重なっていますが、<b>いま κ=1 なので減衰させていません</b>（素朴な掛け算）。<br>`
         + `⚠ 実測がある組み合わせでは、掛け算は<b>必ず大きく出ました</b>`
         + `（胸水の2所見: 掛け算 39.2 に対し実測 8.57）。<b>ここも同じだけ高く出ている可能性があります。</b>`
         + `<span class="mk">κ=${kap.toFixed(2)}（減衰なし）</span>`
@@ -1376,7 +1375,8 @@ function drawVerdict(){
         + `素朴ベイズ <b>${pct(pn)}%</b> → 相関補正後 <b>${pct(p)}%</b>`
         + `<span class="md">${diff>=0?"−":"+"}${Math.abs(diff).toFixed(1)} ポイント</span>`
         + `<span class="mk">κ=${kap.toFixed(2)}</span>`
-        + `<br>⚠ この減衰率は<b>測られた値ではありません</b>（既定は κ=1＝減衰なし）。`
+        + `<br>⚠ <b>この組み合わせを実際に測った研究はありません。</b>`
+        + `κ は実測から逆算した上限 0.32 の内側に置いた値で、測られた減衰率ではありません。`
       : (S.some(s=>s.combo)
         ? `この組み合わせは、<b>原著が「揃ったとき」の尤度比を直接測っています</b>。個々の値を掛け算していません。<span class="mk">κ=${kap.toFixed(2)}</span>`
         : `いま取っている所見は、すべて別の機序を測っています。重複計上は起きていません。<span class="mk">κ=${kap.toFixed(2)}</span>`);
@@ -1684,7 +1684,7 @@ function applyHash(){
   tTest =clamp(num(q.t,DB[key].tTest ), 0.5, 40);
   tTreat=clamp(num(q.r,DB[key].tTreat), 30,  99);
   if(tTest>=tTreat){ tTest=DB[key].tTest; tTreat=DB[key].tTreat; }
-  kap=clamp(num(q.k,1),0,1);
+  kap=clamp(num(q.k,0.25),0,1);
   if(q.c) parseCustomParam(q.c).forEach(f=>panel.push(f));
   /* f= の値は 1（陽性）か -1（陰性）だけを受け付ける（それ以外は無視） */
   if(q.f) q.f.split(",").forEach(kv=>{const[a,b]=kv.split(":"); const v=+b;
