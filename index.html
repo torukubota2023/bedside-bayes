@@ -311,7 +311,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.14.0</span>
+    <span class="ver" id="verLabel">v2.15.0</span>
   </div>
 </header>
 
@@ -650,7 +650,7 @@ const DB = {
        ss:[0.58,0.85], cl:"fluid", tag:"src",
        note:"Kalantri 2007 の感度58%・特異度85%（LR+ 3.9／LR− 0.5）。2026-08-06 に McGee EBM Box 29.2/35.1 由来の LR+ 8.3（感度83%・特異度90%）から差し替えた。このパネルは Kalantri 2007 の単一コホート278例に統一する方針なのに、この行だけ McGee の値で宣言を破っていた。Kalantri の LR+ は最大 8.14 なので 8.3 は同研究由来ではあり得ない。95%信頼区間は Kalantri が所見別に報告していないため省いてある。⚠ Guarino の第1法（胸骨柄を叩き背部で聴く）と第2法（胸水を探す）のどちらを測った研究かは、Guarino 1994・Bourke 1989・Bohadana 1986 の全文が未入手のため確定できていない。二次資料による分類として扱うこと。なお McGee は陰性側を有意でないとしている（点推定0.2、区間0–1.6）"},
       {id:"exp", phen:"expand_lost",  cat:"視診・触診", nm:"胸郭拡張の左右差", lp:8.1, ln:0.3,
-       ci:[5.2,12.7], cin:[0.2,0.4], ss:[0.74,0.91], cl:"expand", tag:"src",
+       ci:[5.2,12.7], cin:[0.2,0.4], ss:[0.74,0.91], cl:"fluid", tag:"src",
        note:"Kalantri の感度74%・特異度91%、LR+ 8.1 (5.2–12.7)／LR− 0.3 (0.2–0.4)。多変量でも独立の予測因子（OR 5.22）。同じ手技でも肺炎を狙うと感度5%まで落ちる — 所見の性能は標的病態で決まる"},
       {id:"voc", phen:"sound_down",  cat:"聴診", nm:"声音共鳴の低下（数を数えさせて背部で聴取）", lp:6.5, ln:0.3,
        ci:[4.4,9.6], cin:[0.2,0.4], ss:[0.76,0.88], cl:"fluid", tag:"src",
@@ -939,6 +939,16 @@ function steps(state){
   const ex = exclInfo(S);
   let on = panel.filter(f=>S[f.id] && !ex[f.id]);
   const w = {}; const out=[];
+  /* κ 規則の計数器。★combo より前に宣言する ── combo が消費した現象・機序をここへ
+     記録しないと、同じ機序の次の所見が「別の機序」と判定されて満額で乗る。
+     2026-08-27 の監査で実測: 胸水で 92.8%（正しくは 77.9%）、COPD で 33 が 102 になっていた。
+     旧カウンタ w[cl] には記録していたが、規則エンジンに書き換えたとき、そちらだけが残された。
+     ⚠ このとき κ を動かしても事後が動かないため、画面は「摘みに寄りかかっていない＝確か」と
+       表示していた。過大評価が確信の顔をして出る、いちばん質の悪い型だった。 */
+  const modOf = f => f.mod || "exam";
+  const wp = {};      // その現象を何件数えたか
+  const pm = {};      // その現象を最初に数えたときのモダリティ
+  const wg = {};      // その機序で、いくつの「別の現象」を数えたか
   /* 組み合わせの実測値（combos）が成立していれば、その2所見を1ステップに置き換える。
      掛け算より前に処理する ── κ を掛けてから足すのでは、実測値が減衰してしまう。
      向きは揃っている必要がある（全部陽性 or 全部陰性）。原著が測ったのはその2通りだけで、
@@ -953,7 +963,12 @@ function steps(state){
     const raw = plus ? c.lp : c.ln;
     /* combo は2所見をまとめた1ステップだが、機序としては構成所見の cl を消費している。
        消費を飲むと、同じ機序の3つ目（例: 胸水の触覚振盪）が減衰せずに満額で乗る。 */
-    fs.forEach(f=>{ used[f.id]=1; w[f.cl]=(w[f.cl]||0)+1; });
+    fs.forEach(f=>{
+      used[f.id]=1; w[f.cl]=(w[f.cl]||0)+1;
+      const ph = f.phen || ("_"+f.id);
+      if(!(wp[ph]||0)){ wg[f.cl]=(wg[f.cl]||0)+1; pm[ph]=modOf(f); }
+      wp[ph]=(wp[ph]||0)+1;
+    });
     out.push({f:{id:"combo:"+c.ids.join("+"), nm:c.nm, cl:"combo:"+c.ids.join("+"), ids:c.ids, tag:"src",
                  note:c.note, ci:c.ci, cin:c.cin, lp:c.lp, ln:c.ln},
               dir: plus?1:-1, raw, n:0, eff:raw, damp:false, combo:c});
@@ -963,10 +978,6 @@ function steps(state){
      上から順に見て、最初に当てはまった規則の κ を使い、その理由を画面に出す。
      「同じ現象を2回測った」と「別の機序」は原理で決まるので摘みでは動かない。
      摘み（kap）が効くのは【同じ機序・違う現象】── 実測が無く、仮置きするしかない一箇所だけ。 */
-  const modOf = f => f.mod || "exam";
-  const wp = {};      // その現象を何件数えたか
-  const pm = {};      // その現象を最初に数えたときのモダリティ
-  const wg = {};      // その機序で、いくつの「別の現象」を数えたか
   on.slice().sort((a,b)=>Math.abs(Math.log(lrOf(b,S[b.id]>0)))-Math.abs(Math.log(lrOf(a,S[a.id]>0))))
     .forEach(f=>{
       const ph = f.phen || ("_"+f.id);            // phen が無い所見は必ず単独扱い
