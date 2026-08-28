@@ -164,6 +164,17 @@ svg{display:block;width:100%;height:auto}
 .kspan.ok{background:#EEF6F1;border-left:4px solid #2E6B45;color:#22523A}
 .kspan.warn{background:#FDF4EF;border-left:4px solid #B5651F;color:#7A4413}
 .kspan .mk,.kspan .md{margin-left:8px}
+/* 結論の頑健性。ここは「確率がいくつか」ではなく「その結論が何に寄りかかっているか」を出す */
+.robust{margin:0 0 12px;padding:11px 13px;border-radius:10px;font-size:13.5px;line-height:1.75;
+  background:#F7F9FA;border:1px solid #DCE4E8}
+.robust .rh{font-weight:600;margin-bottom:6px}
+.robust ul{margin:0;padding-left:0;list-style:none}
+.robust li{margin:3px 0;padding-left:22px;text-indent:-22px}
+.robust .ok{color:#22523A}
+.robust .ng{color:#7A4413}
+.robust .lead{margin-top:7px;padding-top:7px;border-top:1px solid #DCE4E8;font-weight:600}
+.robust .why{font-size:12.5px;color:var(--ink-2);font-weight:400;margin-top:3px}
+.robust .md{display:block;margin-left:0;text-indent:0;font-size:12.5px;color:var(--ink-2)}
 .mech .agree{color:var(--fall)}
 .mech .alone{color:var(--ink-3)}
 .mech .clash{color:var(--rise);font-weight:700}
@@ -311,7 +322,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.15.0</span>
+    <span class="ver" id="verLabel">v2.16.0</span>
   </div>
 </header>
 
@@ -499,6 +510,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 <section class="panel" id="secVerdict">
   <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
   <div class="verdict" id="verdict"></div>
+  <div id="robust"></div>
   <div id="mech"></div>
   <div class="zones" id="zones"></div>
   <div class="note" id="reachNote" style="margin-top:10px"></div>
@@ -1017,10 +1029,41 @@ const KRULE = {
      幅が 0 なら、κ を疑う必要がそもそも無い（論理・原理・実測だけで決まっている）。 */
 function kapSpan(state){
   const keep = kap;
-  kap = 0; const lo = postOf(state);
-  kap = 1; const hi = postOf(state);
-  kap = keep; const now = postOf(state);
-  return {lo:Math.min(lo,hi), hi:Math.max(lo,hi), now, span:Math.abs(hi-lo)*100};
+  try{
+    kap = 0; const lo = postOf(state);
+    kap = 1; const hi = postOf(state);
+    kap = keep; const now = postOf(state);
+    return {lo:Math.min(lo,hi), hi:Math.max(lo,hi), now, span:Math.abs(hi-lo)*100};
+  } finally { kap = keep; }   // 例外時に kap=1 のまま残さない（priorSpan と揃える）
+}
+
+/* 結論（除外域・グレーゾーン・確定域）が変わらない事前確率の範囲。
+   ★ここがこのアプリでいちばん不確かな入力である ── 事前確率は推測であり、
+     Ebell 2018（PMID 30348882）は医師が肺炎の確率を系統的に過大評価し（75%がモデルより高い）、
+     正しい確率を示すと6件に1件で判断が変わったと報告している。
+     「70%です」では動けないが、「事前を13%に置いても95%に置いても結論は同じ」なら動ける。
+   ⚠ postOf() は global の pre を読むので、走査のあいだ差し替える。
+     例外で抜けても必ず戻すため finally を使う（戻し損ねると画面全体が別の患者の値になる）。 */
+function priorSpan(state){
+  /* ★走査ではなく解析的に解く。
+     steps() は pre に依存しない（尤度比の積 Λ は事前確率で変わらない）ので、
+     境目は一次方程式で一発で出る ── odds(境目) = odds(閾値) / Λ。
+     ⚠ 以前は 0.0025 刻みで走査していたが、走査の底（0.005）で打ち切ったものを
+       「下に境目は無い」と読み、事前確率スライダーの下限 0.1% との間に真の境目がある
+       ときに偽の ✓ を出していた（2026-08-28、経緯を知らない検証役が
+       112,266 状態のうち 1,714 件で実測。肺炎パネルで「どこに置いても確定域」と
+       言った直後、スライダーを左端へ動かすとグレーゾーンになる）。
+       刻みで近似すると「◯倍」も系統的にずれる。解析解ならどちらも起きない。 */
+  const lam = steps(state).reduce((a, s) => a * s.eff, 1);       // 尤度比の積
+  const O = q => q / (1 - q), Q = o => o / (1 + o);
+  const preAt = thr => Q(O(thr / 100) / lam);                    // 事後がその閾値になる事前確率
+  const z0 = zoneOf(postOf(state));
+  /* スライダーで実際に置ける範囲。ここから外れた境目は「置きようがない」＝無いのと同じ */
+  const PMIN = Q(Math.exp(-6.9)), PMAX = Q(Math.exp(4.6));
+  let lo = z0 === 0 ? 0 : preAt(z0 === 1 ? tTest : tTreat);
+  let hi = z0 === 2 ? 1 : preAt(z0 === 0 ? tTest : tTreat);
+  const floor = lo <= PMIN, ceil = hi >= PMAX;
+  return {lo: Math.max(lo, 0), hi: Math.min(hi, 1), base: z0, floor, ceil, lam};
 }
 
 /* 仮の状態の事後確率。post() と同じ式（SKILL.md「予告と挙動は同じ式から出さなければならない」） */
@@ -1453,6 +1496,94 @@ function drawVerdict(){
     + (C.unknown>0 ? `　<span class="noci">（${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い）</span>` : "")
     + `<br><span class="noci">上の軸に重ねた帯がこの範囲。点推定の一点だけを見て判断しないこと。</span></div>`;
   document.getElementById("verdict").innerHTML = `事後確率 <b style="font-family:var(--mono)">${pct(p)}%</b> — ${V}${more}${ciLine}`;
+  /* ── 結論の頑健性 ────────────────────────────────────────────────
+     このアプリが出すのは確率だが、ベッドサイドで要るのは「動いてよいか」である。
+     結論を揺らしうる仮定はちょうど3つ ── ①事前確率（推測）②κ（仮置き）③尤度比の幅（文献）。
+     どれが崩れると結論が変わるかを、毎回アプリの側から名乗らせる。
+     ★①がいちばん危うい。事前確率は推測なのに、以降の全部がその上に乗る。
+       それでも黙って受け取っていた（2026-08-28 追加）。 */
+  (function(){
+    const box = document.getElementById("robust");
+    if(!steps().length){ box.innerHTML = ""; return; }
+    const Z = ZONE_LABEL[z];
+    const ps = priorSpan(st), sp = kapSpan(st), C = postCI();
+    const rows = [];
+
+    // ① 事前確率
+    /* ★「境目があるかどうか」で警告すると、13%〜95% のような広い範囲まで⚠になって鳴りすぎる。
+       見るべきは余裕の大きさ ── いまの見積もりが何倍ずれたら境目に届くか（オッズ比で測る）。
+       2倍を基準にした（「100人中20人」を「100人中10人」と読み違える程度の誤りには耐える）。 */
+    const O = q => q / (1 - q);
+    const marg = [];
+    if(!ps.floor) marg.push(O(pre) / O(ps.lo));
+    if(!ps.ceil)  marg.push(O(ps.hi) / O(pre));
+    const mg = marg.length ? Math.min.apply(null, marg) : Infinity;
+    const mgTxt = isFinite(mg) ? `<span class="md">見積もりが <b>${mg.toFixed(1)}倍</b> ずれるまでは同じ</span>` : "";
+    if(ps.floor && ps.ceil){
+      rows.push([true, `事前確率を<b>どこに置いても</b>、結論は「${Z}」のままです`]);
+    }else if(mg >= 100){
+      /* 3万倍などと出しても意味を持たない。100倍を超えたら「事実上どこでも」と言う */
+      const rng2 = ps.ceil ? `<b>${pct(ps.lo)}%</b> より上ならどこでも`
+                 : ps.floor ? `<b>${pct(ps.hi)}%</b> より下ならどこでも` : "";
+      rows.push([true, `事前確率は ${rng2}「${Z}」`
+                     + `<span class="md">いまの ${pct(pre)}% からは、事実上どこへ動かしても変わりません</span>`]);
+    }else if(mg >= 2){
+      const rng = ps.ceil ? `<b>${pct(ps.lo)}%</b> より上ならどこでも`
+                : ps.floor ? `<b>${pct(ps.hi)}%</b> より下ならどこでも`
+                : `<b>${pct(ps.lo)}% 〜 ${pct(ps.hi)}%</b> のどこでも`;
+      rows.push([true, `事前確率は ${rng}「${Z}」`
+                     + `<span class="md">いまは ${pct(pre)}%。見積もりが <b>${mg.toFixed(1)}倍</b> ずれても変わりません</span>`]);
+    }else if(ps.floor){
+      rows.push([false, `事前確率が <b>${pct(ps.hi)}%</b> を超えると「${Z}」から変わります`
+                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b> しかありません</span>`]);
+    }else if(ps.ceil){
+      rows.push([false, `事前確率が <b>${pct(ps.lo)}%</b> を下回ると「${Z}」から変わります`
+                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b> しかありません</span>`]);
+    }else{
+      rows.push([false, `事前確率が <b>${pct(ps.lo)}% 〜 ${pct(ps.hi)}%</b> の外へ出ると「${Z}」から変わります`
+                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b></span>`]);
+    }
+
+    // ② κ（仮置き）
+    const kOK = sp.span < 0.05 ||
+      !((sp.lo*100 < tTest && sp.hi*100 >= tTest) || (sp.lo*100 < tTreat && sp.hi*100 >= tTreat));
+    rows.push([kOK,
+      sp.span < 0.05
+        ? "κ（仮置き）は、この局面では効いていません"
+        : (kOK ? `κ を 0〜1 で動かしても（${pct(sp.lo)}%〜${pct(sp.hi)}%）、結論は「${Z}」のままです`
+               : `κ を 0〜1 で動かすと（${pct(sp.lo)}%〜${pct(sp.hi)}%）、結論が「${Z}」から変わります`)]);
+
+    // ③ 尤度比の95%信頼区間
+    if(C.total > 0){
+      const cOK = zoneOf(C.lo) === z && zoneOf(C.hi) === z;
+      /* pct() は 99.9% 超と 99% 台で表し方が変わり、下限が上限より大きく見えることがある
+         （0.9962→"100"、0.99999→">99.9"）。ここでは 99% 以上を小数1桁で揃える。 */
+      const pc = v => v > 0.999 ? ">99.9" : v > 0.99 ? (v * 100).toFixed(1) : pct(v);
+      /* 区間が公表されていない所見は点推定で代用している。それを言わずに
+         「区間の端でも頑健」と断言すると、片方が作った幅であることが隠れる
+         （2026-08-28、検証役の指摘）。 */
+      const unk = C.unknown > 0
+        ? `<span class="md">⚠ ${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い</span>` : "";
+      rows.push([cOK && C.unknown === 0, (cOK
+        ? `尤度比の95%信頼区間の端（${pc(C.lo)}%・${pc(C.hi)}%）でも、結論は「${Z}」のままです`
+        : `尤度比の95%信頼区間の端では、結論が「${Z}」から変わります`
+          + `（${pc(C.lo)}%＝${ZONE_LABEL[zoneOf(C.lo)]}／${pc(C.hi)}%＝${ZONE_LABEL[zoneOf(C.hi)]}）`) + unk]);
+    }
+
+    const weak = rows.filter(r => !r[0]).length;
+    const lead = weak === 0
+      ? `<div class="lead ok">この「${Z}」という結論は、置いている仮定のどれが崩れても変わりません。`
+        + `<div class="why">動いてよい局面です。数字の一点ではなく、この頑健さのほうを見てください。</div></div>`
+      : `<div class="lead ng">この「${Z}」という結論は、上の ${weak} つが崩れると変わります。`
+        + `<div class="why">結論そのものより先に、そこを詰める価値があります`
+        + (rows[0][0] ? "" : " ── とくに事前確率は推測です。似た患者を100人並べたとき何人か、で置き直してください")
+        + `。</div></div>`;
+
+    box.innerHTML = `<div class="robust"><div class="rh">結論の頑健性 ── この結論は、何に寄りかかっているか</div>`
+      + `<ul>` + rows.map(r => `<li class="${r[0]?"ok":"ng"}">${r[0]?"✓":"⚠"} ${r[1]}</li>`).join("") + `</ul>`
+      + lead + `</div>`;
+  })();
+
   /* 機序ごとの読み方。オッズ（疾患の確率）と、所見そのものの確からしさは別の軸である。
      同一機序の所見が増えても確率はほとんど動かないが、取り違えの可能性は下がる。
      逆に同一機序で向きが食い違えば、どちらかが誤りという強い信号になる。
