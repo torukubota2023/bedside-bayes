@@ -162,6 +162,7 @@ svg{display:block;width:100%;height:auto}
 .heckres{margin:10px 0 6px;padding:10px 12px;background:#EEF6F1;border-left:4px solid #2E6B45;border-radius:8px;font-size:13.5px;line-height:1.7;color:#22523A}
 .kspan{margin:0 0 10px;padding:9px 12px;border-radius:9px;font-size:13.5px;line-height:1.7}
 .kspan.ok{background:#EEF6F1;border-left:4px solid #2E6B45;color:#22523A}
+.kspan.quiet{background:#F2F4F5;border-left:4px solid #8A979E;color:var(--ink)}
 .kspan.warn{background:#FDF4EF;border-left:4px solid #B5651F;color:#7A4413}
 .kspan .mk,.kspan .md{margin-left:8px}
 /* 結論の頑健性。ここは「確率がいくつか」ではなく「その結論が何に寄りかかっているか」を出す */
@@ -172,9 +173,41 @@ svg{display:block;width:100%;height:auto}
 .robust li{margin:3px 0;padding-left:22px;text-indent:-22px}
 .robust .ok{color:#22523A}
 .robust .ng{color:#7A4413}
+.robust .uk{color:var(--ink-2)}
+.robust .lead.uk,.robust .lead.ex{color:var(--ink)}
+.robust .okx{color:var(--ink-2)}
 .robust .lead{margin-top:7px;padding-top:7px;border-top:1px solid #DCE4E8;font-weight:600}
 .robust .why{font-size:12.5px;color:var(--ink-2);font-weight:400;margin-top:3px}
 .robust .md{display:block;margin-left:0;text-indent:0;font-size:12.5px;color:var(--ink-2)}
+/* 問いと物差し（v2.17.0）。色の意味は既存と同じ ── 青＝除外側・赤＝確定側・琥珀＝閾値。
+   ⚠ 枠に緑は使わない（✓ を保証に見せない）。⚠ のときだけ茶、それ以外は灰。 */
+.robust .ask{background:#fff;border:1px solid var(--rule);border-left:4px solid #8A979E;border-radius:8px;padding:10px 12px;margin:2px 0 10px}
+.robust .ask.ng{border-left-color:#7A4413}
+.robust .ask .q{font-weight:600;font-size:14.5px;line-height:1.6;color:var(--ink)}
+.robust .ask .q small{display:block;font-weight:400;font-size:12.5px;color:var(--ink-2)}
+.robust .ruler{position:relative;height:58px;margin:8px 0 0;--thumb:28px}
+.robust .band{position:absolute;left:calc(var(--thumb)/2);right:calc(var(--thumb)/2);top:22px;height:14px;display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.robust .band i{display:block;height:100%}
+.robust .band .s0{background:rgba(42,92,138,.22)}.robust .band .s1{background:#E3E7EA}.robust .band .s2{background:rgba(156,42,59,.20)}
+.robust .cut{position:absolute;top:16px;width:2px;height:26px;background:var(--flag);transform:translateX(-1px);pointer-events:none}
+.robust .cutl{position:absolute;top:0;font:600 11.5px var(--mono);color:var(--flag);transform:translateX(-50%);white-space:nowrap;pointer-events:none}
+.robust .zl{position:absolute;top:42px;font-size:11px;color:var(--ink-2);white-space:nowrap;transform:translateX(-50%);pointer-events:none}
+.robust .ghost{position:absolute;top:21px;width:16px;height:16px;border-radius:50%;border:2px solid var(--ink);background:#fff;transform:translateX(-8px);pointer-events:none}
+#preNear{position:absolute;left:0;right:0;top:7px;width:100%;height:44px;margin:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;touch-action:pan-y}
+#preNear::-webkit-slider-runnable-track{background:transparent;height:44px}
+#preNear::-moz-range-track{background:transparent;height:44px}
+#preNear::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:8px;border-radius:50%;background:var(--ink);border:3px solid #fff;box-shadow:0 0 0 1px var(--ink),0 1px 3px rgba(0,0,0,.35);cursor:pointer}
+#preNear::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ink);border:3px solid #fff;box-shadow:0 0 0 1px var(--ink);cursor:pointer}
+#preNear:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
+.robust .rbnow{position:relative;height:18px;font:600 12px var(--mono);color:var(--ink)}
+.robust .rbnow span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.robust .ans{font-size:13px;line-height:1.7;margin-top:6px;color:var(--ink)}
+.robust .ans b{font-weight:600}
+.robust .try{background:#FFF8E8;border:1px solid #E2C98F;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:13px;line-height:1.65;color:var(--ink)}
+.robust .btnrow{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.robust .btnrow .hint{flex:1;min-width:12em;font-size:12px;color:var(--ink-2)}
+.robust .btnrow .btn{white-space:nowrap;min-height:44px}
+.robust .btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
 .mech .agree{color:var(--fall)}
 .mech .alone{color:var(--ink-3)}
 .mech .clash{color:var(--rise);font-weight:700}
@@ -271,6 +304,9 @@ noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--ris
 .sbtn{font-family:var(--sans);font-size:11.5px;min-height:44px;padding:0 9px;border:1px solid #566873;
   background:transparent;color:#fff;cursor:pointer;white-space:nowrap}
 .sbtn:hover{background:#2B3C46}
+/* 判定へのボタンの頑健性のしるし。:hover より後ろに置く（iPhone はタップ後も hover が残り、地が消える） */
+.sbtn.hot,.sbtn.hot:hover{background:#FDF4EF;color:#7A4413;border-color:#D9B48F;font-weight:600}
+.sbtn.q,.sbtn.q:hover{background:#EEF1F3;color:var(--ink);border-color:#C3CED4;font-weight:600}
 /* ── 症例プリセットの最短路（B-S3）。判定パネル内の従来の場所と同じ DB[key].cases から描く。
    文言はどちらも c.t / c.d のまま ── 二重管理はしない。 */
 .casebar{display:flex;align-items:center;gap:6px;overflow-x:auto;overflow-y:hidden;margin:-8px 0 16px;padding:1px 0 3px}
@@ -292,7 +328,7 @@ noscript{display:block;padding:14px;border:1px solid var(--rise);color:var(--ris
 @media print{
   /* 免責・出典・ライセンスは配布物に必ず残す。教育資料として、また CC BY の表示義務として。 */
   body{background:#fff;font-size:11pt}
-  .tabs,.bar-tools,.toast,.ctrl input,#rank .bar,.sbar,.casebar,.track-fade,.fnote .fmore{display:none}
+  .tabs,.bar-tools,.toast,.ctrl input,#rank .bar,.sbar,.casebar,.track-fade,.fnote .fmore,.rbctl,#rbTry,#preNear,.robust .ghost{display:none}
   .panel{border:1px solid #999;break-inside:avoid;page-break-inside:avoid}
   .wrap{max-width:100%;padding:0}
   .track-panel,.track-scroll{overflow:visible}
@@ -322,7 +358,7 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
     <button class="btn" id="bShare">この設定のリンクをコピー</button>
     <button class="btn ghost" id="bPrint">印刷 / PDF</button>
     <button class="btn ghost" id="bClear">所見をすべて未実施に戻す</button>
-    <span class="ver" id="verLabel">v2.16.0</span>
+    <span class="ver" id="verLabel">v2.17.0</span>
   </div>
 </header>
 
@@ -510,7 +546,29 @@ footer{font-size:11.5px;color:var(--ink-3);border-top:1px solid var(--rule);padd
 <section class="panel" id="secVerdict">
   <h2>4. 判定 <small>VERDICT &amp; REACH</small></h2>
   <div class="verdict" id="verdict"></div>
-  <div id="robust"></div>
+  <div id="robust" hidden>
+    <div class="robust">
+      <div class="rh">結論の頑健性 ── この結論は、何に寄りかかっているか</div>
+      <!-- 問いと、つまみ付きの物差し（v2.17.0）。外枠とつまみは作り直さない（ドラッグが途中で切れるため）。
+           中の文字と帯の塗りだけを描画のたびに書き換える。 -->
+      <div class="ask" id="rbAsk">
+        <div class="q" id="rbQ"></div>
+        <div class="ruler">
+          <div id="rbBand"></div>
+          <input type="range" id="preNear" min="-6.9" max="4.6" step="0.05" value="-1.386" aria-label="事前確率の試し置き">
+        </div>
+        <div class="rbnow" id="rbNow"></div>
+        <div class="ans" id="rbAns"></div>
+        <div class="try" id="rbTry" hidden></div>
+        <div class="btnrow rbctl">
+          <span class="hint" id="rbHint">つまみで試し置きできます（置き直すまで、結論は変わりません）</span>
+          <button type="button" class="btn pri" id="rbCommit" hidden>この値に置き直す</button>
+          <button type="button" class="btn" id="rbCancel" hidden>やめる</button>
+        </div>
+      </div>
+      <div id="rbRows"></div>
+    </div>
+  </div>
   <div id="mech"></div>
   <div class="zones" id="zones"></div>
   <div class="note" id="reachNote" style="margin-top:10px"></div>
@@ -802,6 +860,9 @@ const L = p => Math.log(p/(1-p));
 const IL = z => 1/(1+Math.exp(-z));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const pct = p => p>0.999 ? ">99.9" : p<0.001 ? "<0.1" : p>=0.1 ? (p*100).toFixed(0) : (p*100).toFixed(1);
+/* 幅（下限〜上限）を出すときの表記。pct() は 99.5〜99.9% を "100"、それ以上を ">99.9" と書くので、
+   並べると下限が上限より大きく見える（100% 〜 >99.9%）。幅の両端だけ 99% 以上を小数1桁で揃える。 */
+const pc = v => v > 0.999 ? ">99.9" : v > 0.99 ? (v * 100).toFixed(1) : pct(v);
 /* 尤度比の表示。原著の有効桁を落とさない（2.00 を "2"、12.0 を "12" と出さない）。 */
 const lrf = v => v>=100 ? v.toFixed(0) : v>=10 ? v.toFixed(1) : v.toFixed(2);
 
@@ -1028,13 +1089,20 @@ const KRULE = {
    ★「その結論は κ という推測に、どれだけ寄りかかっているか」を数字で見せるための関数。
      幅が 0 なら、κ を疑う必要がそもそも無い（論理・原理・実測だけで決まっている）。 */
 function kapSpan(state){
-  const keep = kap;
+  /* ★κ のつまみの21位置（0, 0.05, …, 1）といまの値を、すべて postOf で評価する。
+     ⚠ v2.16.0 までは 0 と 1 の2点だけを見ていた。同じ機序に向きの違う所見が混ざると、
+       事後は κ について単調でなくなる（重みが κ の1乗と2乗で付く）ので、途中の山や谷を見落とし、
+       「κ を 0〜1 で動かしても確定域のまま（59%〜63%）」── 確定域は65%以上 ── のような
+       自己矛盾した ✓ を出していた（2026-11-17、経緯を知らない調査役が実測。胸水・心不全で多発）。
+     zones（判定の集合）を返すので、②の行と機序の欄は同じ式で「閾値をまたぐか」を決める。 */
+  const keep = kap, vals = [];
   try{
-    kap = 0; const lo = postOf(state);
-    kap = 1; const hi = postOf(state);
-    kap = keep; const now = postOf(state);
-    return {lo:Math.min(lo,hi), hi:Math.max(lo,hi), now, span:Math.abs(hi-lo)*100};
-  } finally { kap = keep; }   // 例外時に kap=1 のまま残さない（priorSpan と揃える）
+    for(let i = 0; i <= 20; i++){ kap = i / 20; vals.push(postOf(state)); }
+    kap = keep; const now = postOf(state); vals.push(now);
+    const lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    const zones = Array.from(new Set(vals.map(zoneOf))).sort();
+    return {lo, hi, now, span:(hi-lo)*100, zones};
+  } finally { kap = keep; }   // 例外時に別の κ のまま残さない（priorSpan と揃える）
 }
 
 /* 結論（除外域・グレーゾーン・確定域）が変わらない事前確率の範囲。
@@ -1079,17 +1147,25 @@ function wouldDrop(f, dir){
 /* 各所見の尤度比そのものに幅（95%信頼区間）がある。
    点推定だけを見せると、実際には決まっていないことが決まったように見える。
    区間が公表されていない所見は点推定で代用し、その件数を返して明示する。 */
+/* 区間の端に掛ける重みは、steps() が eff を作るときの重みと同じ（eff = raw の w 乗）。
+   ⚠ v2.16.0 までは規則を見ずに kap の n 乗を掛けていた。そのため「同じ現象をもう一度測った」
+     所見（規則で重み0）まで区間にだけ入り、区間が点推定を含まない（事後54%に対し区間48%〜48%）、
+     除外域で根拠のない ✓（端を揃えると上端はグレーゾーン）が出ていた（2026-11-17、調査役が実測）。
+     κ を規則ごとに決める方式へ書き換えたときの取り残し（落とし穴 #30 と同じ型）。 */
+function ciWeight(s){ return s.n > 0 ? Math.pow(s.k, s.n) : 1; }
 function postCI(){
-  const S=steps(); let zl=L(pre), zh=L(pre), unknown=0;
+  const S=steps(); let zl=L(pre), zh=L(pre), unknown=0, total=0;
   S.forEach(s=>{
+    const w = ciWeight(s);
+    if(w === 0) return;          // 重み0の所見は確率を動かさない ── 区間にも「未公表」の数にも入れない
+    total++;
     // 有意でないと判定した所見は確率を動かさないので、区間も広げてはいけない
     const iv = s.f.nsg ? [1,1] : (s.dir>0 ? s.f.ci : s.f.cin);
     if(!iv) unknown++;
     const lo = iv? iv[0] : s.raw, hi = iv? iv[1] : s.raw;
-    const k = Math.pow(kap, s.n);
-    zl += Math.log(lo)*k; zh += Math.log(hi)*k;
+    zl += Math.log(lo)*w; zh += Math.log(hi)*w;
   });
-  return {lo:IL(Math.min(zl,zh)), hi:IL(Math.max(zl,zh)), unknown, total:S.length};
+  return {lo:IL(Math.min(zl,zh)), hi:IL(Math.max(zl,zh)), unknown, total};
 }
 function post(){ let z=L(pre); steps().forEach(s=>z+=Math.log(s.eff)); return IL(z); }
 function postNaive(){ let z=L(pre); steps().forEach(s=>z+=Math.log(s.raw)); return IL(z); }
@@ -1477,6 +1553,309 @@ function drawRank(){
         <span class="unklr">採点外</span></li>`).join("")}</ul></li>` : "");
 }
 
+/* ------------------------------------------------------------ 結論の頑健性
+   ★v2.16.1（2026-11-17）で直したこと（どれも経緯を知らない調査役・検証役の実測から）:
+   ・行の状態を ✓（ok）／⚠（ng）／？（uk）の3つにした。「区間が公表されていない」は
+     崩れると変わる（⚠）とは別の状態 ── 確かめられない。⚠ に数えると、行は「結論はそのまま」と
+     書きながら、まとめは「上の1つが崩れると変わります」と言っていた（全状態の52%）。
+   ・ただし未公表を ⚠ から外すだけだと、緑のまとめ「動いてよい局面です」が全状態の8%→61%に増える
+     （除外域でも 72→507）。だから、未公表が残るまとめは緑にせず、「動いてよい局面です」は外した。
+     ✓ は「確かめた範囲で」の話だと分かる言い方にする（✓ を保証に見せない）。
+   ・確率を動かさない所見だけを押した状態（尤度比の積が1）では欄を出さない ── 何も確かめていないのに
+     3行とも ✓ が出ていた。
+   ・余裕 1.95〜1.99倍が「2.0倍」と出て ⚠ になる／範囲の言葉が空になる、を直した。 */
+let lastRobust = null;
+const ROBUST_TXT = {   /* 利用者向けの文。D3〜D5（副院長の判断）で差し替えるときはここだけを直す */
+  leadAllOk: "確かめた3つの仮定（事前確率・割り引きの強さ・尤度比の幅）のどれを動かしても、結論は変わりません。",
+  leadAllOkWhy: "数字の一点ではなく、この頑健さのほうを見てください。",
+  leadUk: "確かめた範囲では、結論は変わりません。",
+  leadNgUk: "ほかに、確かめきれない仮定があります（尤度比の幅）。",
+};
+/* ROBUSTPURE:BEGIN ── 表記の純関数（tests/robust_format.test.mjs が切り出して検証する。DOM・大域変数を読まない） */
+/* 余裕（オッズ比）の表記。1.95〜1.99 を "2.0" と書くと、2倍以上で ✓ という基準と食い違って見える */
+const fmtMg = m => (m < 2 && m.toFixed(1) === "2.0") ? "1.9" : m.toFixed(1);
+/* 内側への丸め（両側の範囲「X%〜Y% のどこでも」専用）。四捨五入だと、同じ表示の位置が境目の外にも出る。
+   精度は pct() と同じ（10%以上は整数、未満は小数1桁）。 */
+function pctIn(v, up){
+  if(v >= 0.1){ const n = up ? Math.ceil(v*100 - 1e-9) : Math.floor(v*100 + 1e-9); return String(n); }
+  const n = up ? Math.ceil(v*1000 - 1e-9) : Math.floor(v*1000 + 1e-9); return (n/10).toFixed(1);
+}
+/* 表示した％の文字列から「似た患者さん ◯人のうち ◯人」を作る（％の数字と人数を必ず一致させる） */
+function pplOf(sv){
+  if(sv === "<0.1") return {den:1000, n:"1人未満"};
+  if(sv === ">99.9") return {den:1000, n:"999人より多く"};
+  if(/^\d+$/.test(sv)) return {den:100, n:sv+"人"};
+  return {den:1000, n:Math.round(parseFloat(sv)*10)+"人"};
+}
+function pplPair(a, b){
+  const A = pplOf(a), B = pplOf(b);
+  if(A.den === B.den) return {den:A.den, a:A.n, b:B.n};
+  const k = s => /^\d+$/.test(s) ? (parseInt(s,10)*10)+"人" : pplOf(s).n;
+  return {den:1000, a:k(a), b:k(b)};
+}
+/* ROBUSTPURE:END */
+function drawRobust(z){
+  const box = document.getElementById("robust");
+  const out = document.getElementById("rbRows") || box;
+  const S = steps();
+  const ps = priorSpan(st);
+  /* 確率を動かす所見が1つも無い（押していない／動かさない所見だけ）なら出さない */
+  if(!S.length || Math.abs(Math.log(ps.lam)) < 1e-12){
+    if(out !== box) out.innerHTML = ""; else box.innerHTML = "";
+    box.hidden = true; lastRobust = null; return null;
+  }
+  box.hidden = false;
+  const Z = ZONE_LABEL[z];
+  const sp = kapSpan(st), C = postCI();
+  const rows = [];
+
+  // ① 事前確率
+  /* ★「境目があるかどうか」で警告すると、13%〜95% のような広い範囲まで⚠になって鳴りすぎる。
+     見るべきは余裕の大きさ ── いまの見積もりが何倍ずれたら境目に届くか（オッズ比で測る）。
+     2倍を基準にした（「100人中20人」を「100人中10人」と読み違える程度の誤りには耐える）。 */
+  const O = q => q / (1 - q);
+  const marg = [];
+  if(!ps.floor) marg.push(O(pre) / O(ps.lo));
+  if(!ps.ceil)  marg.push(O(ps.hi) / O(pre));
+  const mg = marg.length ? Math.min.apply(null, marg) : Infinity;
+  /* 境目の表示がいまの事前確率の表示と同じ数字になるときは、両方を小数1桁にする（13% を下回ると…いまは 13%、を避ける） */
+  const edges = [];
+  if(!ps.floor) edges.push(ps.lo);
+  if(!ps.ceil)  edges.push(ps.hi);
+  /* 小数1桁でも同じに見えるとき（19.97% と 20%）は2桁まで上げる */
+  let dig = !edges.some(e => pct(e) === pct(pre)) ? -1
+            : (edges.some(e => (e*100).toFixed(1) === (pre*100).toFixed(1)) ? 2 : 1);
+  /* 2桁でも同じ（境目がいまの値とほぼ重なる）なら、数字を並べず「いまの値をわずかでも」と言う */
+  const atEdge = dig === 2 && edges.some(e => (e*100).toFixed(2) === (pre*100).toFixed(2));
+  if(atEdge) dig = -1;
+  const fine = dig > 0;
+  const fe = v => fine ? (v*100).toFixed(dig) : pct(v);
+  const preS = fe(pre);
+  let r1;
+  if(ps.floor && ps.ceil){
+    r1 = ["ok", `事前確率を<b>どこに置いても</b>、結論は「${Z}」のままです`];
+  }else if(mg >= 100){
+    /* 3万倍などと出しても意味を持たない。100倍を超えたら「事実上どこでも」と言う */
+    const rng2 = ps.ceil ? `<b>${fe(ps.lo)}%</b> より上ならどこでも`
+               : ps.floor ? `<b>${fe(ps.hi)}%</b> より下ならどこでも`
+               : `<b>${pctIn(ps.lo,true)}% 〜 ${pctIn(ps.hi,false)}%</b> のどこでも`;
+    r1 = ["ok", `事前確率は ${rng2}「${Z}」`
+              + `<span class="md">いまの ${preS}% からは、事実上どこへ動かしても変わりません</span>`];
+  }else if(mg >= 2){
+    const rng = ps.ceil ? `<b>${fe(ps.lo)}%</b> より上ならどこでも`
+              : ps.floor ? `<b>${fe(ps.hi)}%</b> より下ならどこでも`
+              : `<b>${pctIn(ps.lo,true)}% 〜 ${pctIn(ps.hi,false)}%</b> のどこでも`;
+    r1 = ["ok", `事前確率は ${rng}「${Z}」`
+              + `<span class="md">いまは ${preS}%。見積もりが <b>${fmtMg(mg)}倍</b> ずれても変わりません</span>`];
+  }else if(atEdge && ps.floor){
+    r1 = ["ng", `事前確率が いまの <b>${preS}%</b> をわずかでも超えると「${Z}」から変わります`
+              + `<span class="md">境目がいまの値とほぼ重なっています。余裕は <b>${fmtMg(mg)}倍</b> しかありません</span>`];
+  }else if(atEdge && ps.ceil){
+    r1 = ["ng", `事前確率が いまの <b>${preS}%</b> をわずかでも下回ると「${Z}」から変わります`
+              + `<span class="md">境目がいまの値とほぼ重なっています。余裕は <b>${fmtMg(mg)}倍</b> しかありません</span>`];
+  }else if(ps.floor){
+    r1 = ["ng", `事前確率が <b>${fe(ps.hi)}%</b> を超えると「${Z}」から変わります`
+              + `<span class="md">いまは ${preS}%。余裕は <b>${fmtMg(mg)}倍</b> しかありません</span>`];
+  }else if(ps.ceil){
+    r1 = ["ng", `事前確率が <b>${fe(ps.lo)}%</b> を下回ると「${Z}」から変わります`
+              + `<span class="md">いまは ${preS}%。余裕は <b>${fmtMg(mg)}倍</b> しかありません</span>`];
+  }else{
+    r1 = ["ng", `事前確率が <b>${fe(ps.lo)}% 〜 ${fe(ps.hi)}%</b> の外へ出ると「${Z}」から変わります`
+              + `<span class="md">いまは ${preS}%。余裕は <b>${fmtMg(mg)}倍</b></span>`];
+  }
+  rows.push(r1);
+
+  // ② 割り引きの強さ（κ・仮置き）── 21位置の判定の集合で決める
+  const kName = ROBUST_KNAME;
+  rows.push(sp.zones.length > 1
+    ? ["ng", `${kName}を 0〜1 で動かすと（${pc(sp.lo)}%〜${pc(sp.hi)}%）、結論が「${Z}」から変わります`]
+    : (sp.span < 0.05
+      ? ["ok", ROBUST_KOFF]
+      : ["ok", `${kName}を 0〜1 で動かしても（${pc(sp.lo)}%〜${pc(sp.hi)}%）、結論は「${Z}」のままです`]));
+
+  // ③ 尤度比の95%信頼区間
+  if(C.total > 0){
+    const known = C.total - C.unknown;
+    const cOK = zoneOf(C.lo) === z && zoneOf(C.hi) === z;
+    /* 区間が公表されていない所見は点推定で代用している。それを言わずに
+       「区間の端でも頑健」と断言すると、片方が作った幅であることが隠れる（2026-08-28、検証役の指摘）。 */
+    const unk = C.unknown > 0
+      ? `<span class="md">⚠ ${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い</span>` : "";
+    if(known === 0){
+      rows.push(["uk", `尤度比の幅は、区間が公表されておらず確かめられません（${C.total} 所見）`]);
+    }else if(!cOK){
+      rows.push(["ng", `尤度比の95%信頼区間の端では、結論が「${Z}」から変わります`
+        + `（${pc(C.lo)}%＝${ZONE_LABEL[zoneOf(C.lo)]}／${pc(C.hi)}%＝${ZONE_LABEL[zoneOf(C.hi)]}）` + unk]);
+    }else if(C.unknown > 0){
+      rows.push(["uk", `尤度比の95%信頼区間の端（${pc(C.lo)}%・${pc(C.hi)}%）でも「${Z}」のまま。`
+        + `ただし ${C.total} 所見中 ${C.unknown} 件は区間が未公表`
+        + `<span class="md">点推定で代用。実際の幅はこれより広い</span>`]);
+    }else{
+      rows.push(["ok", `尤度比の95%信頼区間の端（${pc(C.lo)}%・${pc(C.hi)}%）でも、結論は「${Z}」のままです`]);
+    }
+  }
+
+  const ng = rows.filter(r => r[0] === "ng").length, uk = rows.filter(r => r[0] === "uk").length;
+  let lead;
+  if(ng > 0){
+    lead = `<div class="lead ng">この「${Z}」という結論は、上の ${ng} つが崩れると変わります。`
+      + `<div class="why">結論そのものより先に、そこを詰める価値があります`
+      + (rows[0][0] === "ng" ? " ── とくに事前確率は推測です。似た患者を100人並べたとき何人か、で置き直してください" : "")
+      + `。</div>` + (uk ? `<div class="why">${ROBUST_TXT.leadNgUk}</div>` : "") + `</div>`;
+  }else if(uk > 0){
+    const why = (C.total - C.unknown) === 0
+      ? `尤度比の幅は、${C.total} 所見とも区間が公表されておらず確かめられません。`
+      : `尤度比の幅は、${C.total} 所見中 ${C.unknown} 件が未確認です（区間が未公表）。`;
+    lead = `<div class="lead uk">${ROBUST_TXT.leadUk}<div class="why">${why}</div></div>`;
+  }else if(z === 0){
+    /* 除外域で3行とも確認済み：緑の ✓ とまとめは「帰してよい」と読まれやすい。行は灰色の「・」、
+       まとめも灰色にして、除外域は「病気がない」ではないと添える（2026-11-17 副院長裁定・案B） */
+    lead = `<div class="lead ex">確かめた3つの仮定（事前確率・割り引きの強さ・尤度比の幅）のどれを動かしても、「${Z}」は変わりません。`
+      + `<div class="why">ただし、除外域は「${esc(DB[key].short)}がない」ではありません。`
+      + (key === "cap" ? "上の枠の人数と、再受診の約束を。" : "上の枠の人数を見てください。") + `</div></div>`;
+  }else{
+    lead = `<div class="lead ok">${ROBUST_TXT.leadAllOk}<div class="why">${ROBUST_TXT.leadAllOkWhy}</div></div>`;
+  }
+  const quiet = (ng === 0 && uk === 0 && z === 0);   // 除外域で3行とも確認済み → 緑を出さない
+  const mark = {ok: quiet ? "・" : "✓", ng:"⚠", uk:"？"};
+  out.innerHTML = (out === box ? `<div class="robust"><div class="rh">結論の頑健性 ── この結論は、何に寄りかかっているか</div>` : "")
+    + `<ul>` + rows.map(r => `<li class="${quiet && r[0] === "ok" ? "okx" : r[0]}">${mark[r[0]]} ${r[1]}</li>`).join("") + `</ul>`
+    + lead + (out === box ? `</div>` : "");
+  lastRobust = {z, Z, rows: rows.map(r => r[0]), ng, uk, ps, mg, lam: ps.lam, preS, fe, fine, atEdge,
+                post: postOf(st), C, sp, sumLog: S.reduce((a, s) => a + Math.log(s.eff), 0)};
+  drawAsk(lastRobust);
+  return lastRobust;
+}
+
+/* ------------------------------------------------------------ 問いと、つまみ付きの物差し（v2.17.0）
+   ★問いを「事前確率は何%か」から「境目より上か、下か」に置き換える（第6話実装編の語りと同じ）。
+     一点で当てなくても、線のどちら側かなら答えられる。
+   ★「はい」と答えると今の結論が保たれる聞き方にしない（「30%より下ですか」は、すぐ上の事後確率
+     5.9% を読めば必ず「はい」になる）。「上か、下か」と聞き、結論が変わる向きを先に書く。
+   ★つまみは「試し置き」── 動かしても結論（状態・URL・下部バー）は変えない。「この値に置き直す」で
+     はじめて変わる。都合のよい向きへ少し動かすだけで ⚠ が消える（肺炎 5.9% は 20%→17% で3行とも ✓）
+     使い方を、操作の形で防ぐ（2026-11-17、設計の検証役の指摘）。
+   ★色は「事前確率をそこに置いたら、結論がどの区分になるか」。境目は解析解（odds(境目)=odds(閾値)/Λ）。
+     走査はしない。数字は①の行と同じ関数（R.fe・pctIn）から作り、別々に丸めない。 */
+const PRE_XMIN = -6.9, PRE_XMAX = 4.6;
+const xFrac = x => (clamp(x, PRE_XMIN, PRE_XMAX) - PRE_XMIN) / (PRE_XMAX - PRE_XMIN);
+/* つまみ（幅28px）の中心が通る範囲＝帯。left = 14px + f×(幅−28px) */
+const xLeft = f => `calc(${(14 - 28*f).toFixed(2)}px + ${(f*100).toFixed(3)}%)`;
+let trialX = null;   // 試し置きの位置（対数オッズ）。null なら試し置きしていない
+function drawAsk(R){
+  const ask = document.getElementById("rbAsk"); if(!ask || !R) return;
+  const {z, Z, ps, mg} = R;
+  const nm = DB[key].short;
+  const ng1 = R.rows[0] === "ng";
+  ask.className = "ask" + (ng1 ? " ng" : "");
+  const lo = ps.floor ? null : ps.lo, hi = ps.ceil ? null : ps.hi;
+  const Oq = q => q / (1 - q), Qo = o => o / (1 + o);
+  let q = "", ans = [];
+  const gray = "「グレーゾーン」（検査で確かめる）";
+  if(lo === null && hi === null){
+    q = `事前確率を<b>どこに置いても</b>「${Z}」`;
+  }else if(ng1){
+    const head = "問い：診察する前の見込み（事前確率）は、";
+    if(R.atEdge){
+      q = `${head}<b>いまの ${R.preS}%</b> より上か、下か<small>境目がいまの値とほぼ重なっています</small>`;
+    }else if(lo !== null && hi !== null){
+      const P = pplPair(R.fe(lo), R.fe(hi));
+      q = `${head}<b>${R.fe(lo)}%〜${R.fe(hi)}%</b> のあいだか、外か`
+        + `<small>似た患者さん ${P.den}人のうち ${P.a}〜${P.b}のあいだか</small>`;
+    }else{
+      const e = lo !== null ? lo : hi, P = pplOf(R.fe(e));
+      q = `${head}<b>${R.fe(e)}%</b> より上か、下か<small>似た患者さん ${P.den}人のうち ${P.n}より多いか、少ないか</small>`;
+    }
+    if(z === 2) ans.push(`<b>下なら${gray}</b>。上なら「確定域」のまま。`);
+    else if(z === 0) ans.push(`<b>上なら${gray}</b>。下なら「除外域」のまま。`);
+    else if(lo !== null && hi !== null) ans.push(`<b>下なら「除外域」、上なら「確定域」</b>。あいだなら${gray}のまま。`);
+    else if(lo !== null) ans.push(`<b>下なら「除外域」</b>。上なら${gray}のまま。`);
+    else ans.push(`<b>上なら「確定域」</b>。下なら${gray}のまま。`);
+    if(mg < 1.25 && !R.atEdge) ans.push(`いまの ${R.preS}% は境目のすぐそばです。`);
+  }else{
+    const down = pct(Qo(Oq(pre)/2)), up = pct(Qo(Oq(pre)*2));
+    const far = mg >= 100;
+    if(lo !== null && hi !== null){
+      const a = pctIn(lo,true), b = pctIn(hi,false), P = pplPair(a, b);
+      q = `事前確率は <b>${a}%〜${b}%</b> のあいだなら、どこに置いても「${Z}」<small>似た患者さん ${P.den}人のうち ${P.a}〜${P.b}なら同じ</small>`;
+      ans.push(far ? "事前確率については、事実上どこへ動かしても同じです。"
+                   : `事前確率については、いまの ${R.preS}% を ${down}%〜${up}% のあいだで動かしても同じです。`);
+    }else if(lo !== null){
+      const P = pplOf(R.fe(lo));
+      q = `事前確率は <b>${R.fe(lo)}%</b> より上なら、どこに置いても「${Z}」<small>似た患者さん ${P.den}人のうち ${P.n}より多ければ同じ</small>`;
+      ans.push(far ? "事前確率については、事実上どこへ動かしても同じです。"
+                   : `事前確率については、いまの ${R.preS}% を ${down}% に下げても同じです。`);
+    }else{
+      const P = pplOf(R.fe(hi));
+      q = `事前確率は <b>${R.fe(hi)}%</b> より下なら、どこに置いても「${Z}」<small>似た患者さん ${P.den}人のうち ${P.n}より少なければ同じ</small>`;
+      ans.push(far ? "事前確率については、事実上どこへ動かしても同じです。"
+                   : `事前確率については、いまの ${R.preS}% を ${up}% に上げても同じです。`);
+    }
+  }
+  const ngO = R.rows.slice(1).filter(r => r === "ng").length, ukO = R.rows.slice(1).filter(r => r === "uk").length;
+  if(ngO) ans.push(`ほかの仮定にも ⚠ が ${ngO} つあります（下の行）。`);
+  else if(ukO) ans.push(`ほかの仮定に ？ が ${ukO} つあります（下の行）。`);
+  if(z === 0){
+    /* 除外域は「肺炎がゼロ」ではない。残る人数を同じ枠で言う（動画の安全の一文と同じ趣旨）。
+       再受診の一文は帰宅を前提にするので、肺炎のパネルだけ（心不全・胸水・COPD は原因探しが残る） */
+    const p = R.post;
+    const left = p >= 0.01 ? `100人のうち ${Math.ceil(p*100 - 1e-9)}人ほど` : `1000人のうち ${Math.max(1, Math.ceil(p*1000 - 1e-9))}人ほど`;
+    ans.push(`除外域でも、同じ所見の患者さん ${left}には${esc(nm)}があります。`
+      + (key === "cap" ? "帰ってもらうなら、悪くなったら再受診の約束を。" : ""));
+  }
+  document.getElementById("rbQ").innerHTML = q;
+  document.getElementById("rbAns").innerHTML = ans.join("<br>");
+  /* 帯：その位置に事前確率を置いたら、結論がどの区分になるか */
+  const q1 = Qo(Oq(tTest/100) / ps.lam), q2 = Qo(Oq(tTreat/100) / ps.lam);
+  const f1 = xFrac(L(q1)), f2 = xFrac(L(q2));
+  const seg = [f1, Math.max(0, f2 - f1), Math.max(0, 1 - f2)];
+  const names = ["除外域", "グレーゾーン", "確定域"];
+  let band = `<div class="band" data-q1="${q1}" data-q2="${q2}">`
+    + seg.map((w, i) => `<i class="s${i}" style="width:${(w*100).toFixed(3)}%"></i>`).join("") + `</div>`;
+  const starts = [0, f1, f2];
+  seg.forEach((w, i) => { if(w >= 0.16) band += `<div class="zl" style="left:${xLeft(starts[i] + w/2)}">${names[i]}</div>`; });
+  [[lo, true], [hi, false]].forEach(([e]) => {
+    if(e === null) return;
+    const f = xFrac(L(e));
+    band += `<div class="cut" style="left:${xLeft(f)}"></div>`
+          + `<div class="cutl" style="left:${xLeft(f)}">${R.atEdge ? R.preS : (ng1 ? R.fe(e) : (lo !== null && hi !== null ? (e === lo ? pctIn(lo,true) : pctIn(hi,false)) : R.fe(e)))}%</div>`;
+  });
+  band += `<div class="ghost" id="rbGhost" hidden></div>`;
+  document.getElementById("rbBand").innerHTML = band;
+  trialX = null;
+  setVal("preNear", L(pre));
+  drawTrial();
+}
+/* 試し置きの表示（状態は変えない）。trialX が null なら、いまの事前確率の表示に戻す */
+function drawTrial(){
+  const R = lastRobust; if(!R) return;
+  const ghost = document.getElementById("rbGhost"), now = document.getElementById("rbNow");
+  const tryBox = document.getElementById("rbTry");
+  const on = trialX !== null && Math.abs(trialX - L(pre)) >= 0.025;
+  const xNow = L(pre);
+  if(ghost){ ghost.hidden = !on; ghost.style.left = xLeft(xFrac(xNow)); }
+  const x = on ? trialX : xNow;
+  const isDef = pct(pre) === pct(DB[key].pre);
+  now.innerHTML = `<span style="left:${xLeft(xFrac(x))}">`
+    + (on ? `試し置き ${pct(IL(trialX))}%` : `いま ${pct(pre)}%` + (isDef ? "" : `（既定 ${pct(DB[key].pre)}%）`)) + `</span>`;
+  const nearEl = document.getElementById("preNear");
+  if(on){
+    const q = IL(trialX), p2 = IL(trialX + R.sumLog), z2 = zoneOf(p2);
+    tryBox.innerHTML = `試し置き：<b>${pct(q)}%</b> に置くと → 事後 <b>${pct(p2)}%</b>・「${ZONE_LABEL[z2]}」`
+      + (z2 === 1 ? "（検査で確かめる）" : "") + `<br>まだ結論は変えていません（いまは ${pct(pre)}%）。`;
+    nearEl.setAttribute("aria-valuetext", `試し置き ${pct(q)}%・ここに置くと${ZONE_LABEL[z2]}`);
+  }else{
+    nearEl.setAttribute("aria-valuetext", `事前確率 ${pct(pre)}%・結論は${ZONE_LABEL[R.z]}`);
+  }
+  tryBox.hidden = !on;
+  document.getElementById("rbCommit").hidden = !on;
+  document.getElementById("rbCancel").hidden = !on;
+  document.getElementById("rbHint").hidden = on;
+}
+/* ②の行の呼び名。動画（第6話実装編）の語りに揃える ── κ は「割り引きの強さ」 */
+const ROBUST_KNAME = "割り引きの強さ（κ）";
+const ROBUST_KOFF = "割り引きの強さ（κ・仮置き）は、この局面では効いていません";
+
 function drawVerdict(){
   const p=post(), R=reach(), z=zoneOf(p);
   const V=["<b>除外域</b>：追加検査の閾値を下回った。ここで止めるのが合理的。",
@@ -1492,97 +1871,17 @@ function drawVerdict(){
   }
   const C=postCI();
   const ciLine = C.total===0 ? "" :
-    `<div class="cirow">尤度比の95%信頼区間まで入れると <b>${pct(C.lo)}% 〜 ${pct(C.hi)}%</b>`
+    `<div class="cirow">尤度比の95%信頼区間まで入れると <b>${pc(C.lo)}% 〜 ${pc(C.hi)}%</b>`
     + (C.unknown>0 ? `　<span class="noci">（${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い）</span>` : "")
     + `<br><span class="noci">上の軸に重ねた帯がこの範囲。点推定の一点だけを見て判断しないこと。</span></div>`;
   document.getElementById("verdict").innerHTML = `事後確率 <b style="font-family:var(--mono)">${pct(p)}%</b> — ${V}${more}${ciLine}`;
   /* ── 結論の頑健性 ────────────────────────────────────────────────
      このアプリが出すのは確率だが、ベッドサイドで要るのは「動いてよいか」である。
-     結論を揺らしうる仮定はちょうど3つ ── ①事前確率（推測）②κ（仮置き）③尤度比の幅（文献）。
+     結論を揺らしうる仮定は3つ ── ①事前確率（推測）②κ（仮置き）③尤度比の幅（文献）。
      どれが崩れると結論が変わるかを、毎回アプリの側から名乗らせる。
-     ★①がいちばん危うい。事前確率は推測なのに、以降の全部がその上に乗る。
-       それでも黙って受け取っていた（2026-08-28 追加）。 */
-  (function(){
-    const box = document.getElementById("robust");
-    if(!steps().length){ box.innerHTML = ""; return; }
-    const Z = ZONE_LABEL[z];
-    const ps = priorSpan(st), sp = kapSpan(st), C = postCI();
-    const rows = [];
-
-    // ① 事前確率
-    /* ★「境目があるかどうか」で警告すると、13%〜95% のような広い範囲まで⚠になって鳴りすぎる。
-       見るべきは余裕の大きさ ── いまの見積もりが何倍ずれたら境目に届くか（オッズ比で測る）。
-       2倍を基準にした（「100人中20人」を「100人中10人」と読み違える程度の誤りには耐える）。 */
-    const O = q => q / (1 - q);
-    const marg = [];
-    if(!ps.floor) marg.push(O(pre) / O(ps.lo));
-    if(!ps.ceil)  marg.push(O(ps.hi) / O(pre));
-    const mg = marg.length ? Math.min.apply(null, marg) : Infinity;
-    const mgTxt = isFinite(mg) ? `<span class="md">見積もりが <b>${mg.toFixed(1)}倍</b> ずれるまでは同じ</span>` : "";
-    if(ps.floor && ps.ceil){
-      rows.push([true, `事前確率を<b>どこに置いても</b>、結論は「${Z}」のままです`]);
-    }else if(mg >= 100){
-      /* 3万倍などと出しても意味を持たない。100倍を超えたら「事実上どこでも」と言う */
-      const rng2 = ps.ceil ? `<b>${pct(ps.lo)}%</b> より上ならどこでも`
-                 : ps.floor ? `<b>${pct(ps.hi)}%</b> より下ならどこでも` : "";
-      rows.push([true, `事前確率は ${rng2}「${Z}」`
-                     + `<span class="md">いまの ${pct(pre)}% からは、事実上どこへ動かしても変わりません</span>`]);
-    }else if(mg >= 2){
-      const rng = ps.ceil ? `<b>${pct(ps.lo)}%</b> より上ならどこでも`
-                : ps.floor ? `<b>${pct(ps.hi)}%</b> より下ならどこでも`
-                : `<b>${pct(ps.lo)}% 〜 ${pct(ps.hi)}%</b> のどこでも`;
-      rows.push([true, `事前確率は ${rng}「${Z}」`
-                     + `<span class="md">いまは ${pct(pre)}%。見積もりが <b>${mg.toFixed(1)}倍</b> ずれても変わりません</span>`]);
-    }else if(ps.floor){
-      rows.push([false, `事前確率が <b>${pct(ps.hi)}%</b> を超えると「${Z}」から変わります`
-                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b> しかありません</span>`]);
-    }else if(ps.ceil){
-      rows.push([false, `事前確率が <b>${pct(ps.lo)}%</b> を下回ると「${Z}」から変わります`
-                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b> しかありません</span>`]);
-    }else{
-      rows.push([false, `事前確率が <b>${pct(ps.lo)}% 〜 ${pct(ps.hi)}%</b> の外へ出ると「${Z}」から変わります`
-                      + `<span class="md">いまは ${pct(pre)}%。余裕は <b>${mg.toFixed(1)}倍</b></span>`]);
-    }
-
-    // ② κ（仮置き）
-    const kOK = sp.span < 0.05 ||
-      !((sp.lo*100 < tTest && sp.hi*100 >= tTest) || (sp.lo*100 < tTreat && sp.hi*100 >= tTreat));
-    rows.push([kOK,
-      sp.span < 0.05
-        ? "κ（仮置き）は、この局面では効いていません"
-        : (kOK ? `κ を 0〜1 で動かしても（${pct(sp.lo)}%〜${pct(sp.hi)}%）、結論は「${Z}」のままです`
-               : `κ を 0〜1 で動かすと（${pct(sp.lo)}%〜${pct(sp.hi)}%）、結論が「${Z}」から変わります`)]);
-
-    // ③ 尤度比の95%信頼区間
-    if(C.total > 0){
-      const cOK = zoneOf(C.lo) === z && zoneOf(C.hi) === z;
-      /* pct() は 99.9% 超と 99% 台で表し方が変わり、下限が上限より大きく見えることがある
-         （0.9962→"100"、0.99999→">99.9"）。ここでは 99% 以上を小数1桁で揃える。 */
-      const pc = v => v > 0.999 ? ">99.9" : v > 0.99 ? (v * 100).toFixed(1) : pct(v);
-      /* 区間が公表されていない所見は点推定で代用している。それを言わずに
-         「区間の端でも頑健」と断言すると、片方が作った幅であることが隠れる
-         （2026-08-28、検証役の指摘）。 */
-      const unk = C.unknown > 0
-        ? `<span class="md">⚠ ${C.total} 所見中 ${C.unknown} 件は区間が公表されておらず点推定で代用。実際の幅はこれより広い</span>` : "";
-      rows.push([cOK && C.unknown === 0, (cOK
-        ? `尤度比の95%信頼区間の端（${pc(C.lo)}%・${pc(C.hi)}%）でも、結論は「${Z}」のままです`
-        : `尤度比の95%信頼区間の端では、結論が「${Z}」から変わります`
-          + `（${pc(C.lo)}%＝${ZONE_LABEL[zoneOf(C.lo)]}／${pc(C.hi)}%＝${ZONE_LABEL[zoneOf(C.hi)]}）`) + unk]);
-    }
-
-    const weak = rows.filter(r => !r[0]).length;
-    const lead = weak === 0
-      ? `<div class="lead ok">この「${Z}」という結論は、置いている仮定のどれが崩れても変わりません。`
-        + `<div class="why">動いてよい局面です。数字の一点ではなく、この頑健さのほうを見てください。</div></div>`
-      : `<div class="lead ng">この「${Z}」という結論は、上の ${weak} つが崩れると変わります。`
-        + `<div class="why">結論そのものより先に、そこを詰める価値があります`
-        + (rows[0][0] ? "" : " ── とくに事前確率は推測です。似た患者を100人並べたとき何人か、で置き直してください")
-        + `。</div></div>`;
-
-    box.innerHTML = `<div class="robust"><div class="rh">結論の頑健性 ── この結論は、何に寄りかかっているか</div>`
-      + `<ul>` + rows.map(r => `<li class="${r[0]?"ok":"ng"}">${r[0]?"✓":"⚠"} ${r[1]}</li>`).join("") + `</ul>`
-      + lead + `</div>`;
-  })();
+     ★①がいちばん危うい。事前確率は推測なのに、以降の全部がその上に乗る（2026-08-28 追加）。
+     計算と文言は drawRobust() に分けた（v2.16.1）。下部バーと事前確率の試し置きも同じ結果を読む。 */
+  drawRobust(z);
 
   /* 機序ごとの読み方。オッズ（疾患の確率）と、所見そのものの確からしさは別の軸である。
      同一機序の所見が増えても確率はほとんど動かないが、取り違えの可能性は下がる。
@@ -1606,14 +1905,15 @@ function drawVerdict(){
     const usedRules = Object.keys(byRule);
     const sp = kapSpan(st);
     const spanLine = sp.span < 0.05
-      ? `<div class="kspan ok">✓ <b>この結論は κ に依存しません。</b>`
+      /* 除外域では緑の ✓ を出さない（「帰してよい」と読まれやすい。2026-11-17 副院長裁定、頑健性の欄と同じ扱い） */
+      ? `<div class="kspan ${z === 0 ? "quiet" : "ok"}">${z === 0 ? "・" : "✓"} <b>この結論は κ に依存しません。</b>`
         + `κ を 0 から 1 のどこへ動かしても <b>${pct(sp.now)}%</b> のままです`
         + `<span class="mk">論理・原理・実測だけで決まっている</span></div>`
       : `<div class="kspan warn">⚠ <b>κ（仮置き）を 0〜1 で動かすと、事後確率は`
-        + ` <b>${pct(sp.lo)}% 〜 ${pct(sp.hi)}%</b> の間で動きます</b>`
+        + ` <b>${pc(sp.lo)}% 〜 ${pc(sp.hi)}%</b> の間で動きます</b>`
         + `<span class="md">幅 ${sp.span.toFixed(1)} ポイント</span>`
         + `<br><span style="opacity:.85">いまは κ=${kap.toFixed(2)} で ${pct(sp.now)}%。`
-        + `${(sp.lo*100<tTest&&sp.hi*100>tTest)||(sp.lo*100<tTreat&&sp.hi*100>tTreat)
+        + `${sp.zones.length > 1
             ? "<b>この幅は閾値をまたぎます ── 結論が κ の置き方で変わります。</b>"
             : "この幅の中で閾値はまたぎません ── 結論は変わりません。"}</span></div>`;
     const head = spanLine + (damped
@@ -1675,7 +1975,24 @@ function drawVerdict(){
 function applyCase(i){
   const c=DB[key].cases[i]; if(!c) return;
   st={}; Object.keys(c.set).forEach(k=>st[k]=c.set[k]);
-  pre=c.pre; document.getElementById("pre").value=L(pre); render();
+  setPre(c.pre, "case");
+}
+/* 事前確率を変える入口はここ1つ（上のつまみ・症例・頑健性の欄の「置き直す」）。
+   上のつまみを動かしているとき（from==="slider"）以外は、つまみの位置も合わせる。 */
+function setPre(v, from){
+  pre = clamp(v, 1e-4, .999);
+  if(from !== "slider") setVal("pre", L(pre));
+  render();
+}
+/* 値が同じなら代入しない（ドラッグ中のつまみに書き戻して、指の位置とずれるのを避ける） */
+function setVal(id, v){ const el=document.getElementById(id); if(el && +el.value !== +v) el.value = v; }
+/* URL の読み込み・症例・タブ切替のあとに、画面の部品を状態へ合わせる（初回と hashchange で同じ処理）。
+   ⚠ v2.16.0 までは hashchange のときにつまみ・タブ・出典欄を合わせておらず、状態と画面がずれた。 */
+function syncControls(){
+  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.k===key));
+  document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</li>`).join("")
+    + `<li style="color:var(--ink-3)">状況設定：${esc(DB[key].ctx)}</li>`;
+  setVal("pre", L(pre)); setVal("tTest", tTest); setVal("tTreat", tTreat); setVal("kap", kap);
 }
 /* 症例プリセットは 2 か所に出る（B-S3）── 「4. 判定」内の従来の一覧と、タブ直下のチップ列。
    源はどちらも DB[key].cases ひとつだけ。文言を二重に持たない。 */
@@ -1706,6 +2023,17 @@ function drawStatusbar(){
   }else{
     d.textContent=""; d.className="d";
   }
+  /* 判定へのボタンに、頑健性のしるしを出す（固定表示の要素は増やさない）。
+     ✓ を保証に見せない ── 緑の地にしない。除外域では ✓ を出さない（「帰してよい」と読まれやすい）。 */
+  const sv = document.getElementById("sbVerd"), R = lastRobust;
+  let t = "判定へ", c = "", al = "判定へ";
+  if(R){
+    if(R.ng > 0){ t = `判定 ⚠${R.ng} ›`; c = "hot"; al = `判定へ。結論を変えうる仮定が ${R.ng} つ`; }
+    else if(R.uk > 0){ t = "判定 ？ ›"; c = "q"; al = "判定へ。確かめきれない仮定あり"; }
+    else if(R.z !== 0){ t = "判定 ✓ ›"; al = "判定へ。確かめた仮定では結論は変わらない"; }
+    else { t = "判定 ›"; }
+  }
+  sv.textContent = t; sv.className = "sbtn" + (c ? " " + c : ""); sv.setAttribute("aria-label", al);
   measureSbar();
 }
 /* バーの実測高さを CSS 変数へ返す。本文の下余白（.wrap）とトーストの位置がこれを見ている。 */
@@ -1713,11 +2041,17 @@ function measureSbar(){
   const b=document.getElementById("sbar"); if(!b) return;
   document.documentElement.style.setProperty("--sbar-h", b.offsetHeight+"px");
 }
+/* ⚠ v2.16.0 までは scrollIntoView（smooth）だけで、移動中に上の軌跡が縮む（compact）分 155px ずれ、
+   見出しが軌跡の裏に隠れた。いまは即時に移動し、貼り付いた軌跡の高さを測って2回合わせる。 */
 function jumpTo(id){
   const el=document.getElementById(id); if(!el) return;
-  const soft = !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  try{ el.scrollIntoView({behavior: soft?"smooth":"auto", block:"start"}); }
-  catch(e){ el.scrollIntoView(); }
+  const pn=document.getElementById("trackPanel");
+  const go=()=>{
+    const stuck = pn && getComputedStyle(pn).position==="sticky" && pn.getBoundingClientRect().top <= 1;
+    const h = stuck ? pn.getBoundingClientRect().height : 0;
+    window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - h - 10));
+  };
+  go(); if(syncSticky) syncSticky(); go(); if(syncSticky) syncSticky(); go();
 }
 
 function render(){
@@ -1758,7 +2092,18 @@ function setDisease(k){
   drawCases();
 }
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{ setDisease(b.dataset.k); render(); });
-document.getElementById("pre").oninput=e=>{ pre=clamp(IL(+e.target.value),1e-4,.999); render(); };
+document.getElementById("pre").oninput=e=>setPre(IL(+e.target.value), "slider");
+/* 頑健性の欄のつまみ：試し置き（状態は変えない）／置き直す／やめる */
+document.getElementById("preNear").oninput=e=>{ trialX = +e.target.value; drawTrial(); };
+document.getElementById("rbCancel").onclick=()=>{ trialX = null; setVal("preNear", L(pre)); drawTrial(); };
+document.getElementById("rbCommit").onclick=()=>{
+  if(trialX === null) return;
+  /* 置き直すと上の判定の文の高さが変わり、欄が画面の中で上下に跳ぶ。描画の前後で位置を合わせる */
+  const box = document.getElementById("robust"), y0 = box.getBoundingClientRect().top;
+  setPre(IL(trialX), "near");
+  const y1 = box.getBoundingClientRect().top;
+  if(Math.abs(y1 - y0) > 1) window.scrollBy(0, y1 - y0);
+};
 document.getElementById("tTest").oninput=e=>{ tTest=+e.target.value; if(tTest>=tTreat){tTreat=tTest+1;document.getElementById("tTreat").value=tTreat;} render(); };
 document.getElementById("tTreat").oninput=e=>{ tTreat=+e.target.value; if(tTreat<=tTest){tTest=tTreat-1;document.getElementById("tTest").value=tTest;} render(); };
 document.getElementById("kap").oninput=e=>{ kap=+e.target.value; render(); };
@@ -1971,18 +2316,10 @@ document.getElementById("bPrint").onclick=()=>window.print();
 document.getElementById("bClear").onclick=()=>{ st={}; render(); };
 
 /* ------------------------------------------------------------ bootstrap */
-const fromHash = applyHash();
-if(fromHash){
-  document.querySelectorAll("#tabs button").forEach(x=>x.setAttribute("aria-pressed", x.dataset.k===key));
-  document.getElementById("kap").value=kap;
-}
-document.getElementById("srcs").innerHTML = DB[key].src.map(s=>`<li>${esc(s)}</li>`).join("")
-  + `<li style="color:var(--ink-3)">状況設定：${esc(DB[key].ctx)}</li>`;
-document.getElementById("pre").value=L(pre);
-document.getElementById("tTest").value=tTest;
-document.getElementById("tTreat").value=tTreat;
+applyHash();
+syncControls();
 drawCases(); render(); initStickyTrack();
-addEventListener("hashchange",()=>{ if(applyHash()){ drawCases(); render(); } });
+addEventListener("hashchange",()=>{ if(applyHash()){ syncControls(); drawCases(); render(); } });
 /* 軌跡の「続きがある」合図と、下部バーの高さは、指でのパン・画面回転でも合わせ直す。 */
 (function(){
   const sc=document.getElementById("trackScroll");

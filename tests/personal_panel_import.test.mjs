@@ -14,8 +14,11 @@ const src =
   extract("/* PPIMPORT:BEGIN */", "/* PPIMPORT:END */") +
   "\n" +
   extract("PPHASH:BEGIN */", "/* PPHASH:END */");
+/* buildMesFinding は、画面の大域変数 panel（いま開いているパネルの所見一覧）を読む。
+   切り出した区間だけでは panel が無いので、テストの前置きで空のパネルを用意する（アプリ側の区間は変えない）。
+   ⚠ v2.16.0 まではこの前置きが無く、3件が「panel is not defined」で落ちていた（2026-11-17 に発見）。 */
 const { validatePersonalPanel, buildMesFinding, parseCustomParam } = new Function(
-  src + "\nreturn {validatePersonalPanel, buildMesFinding, parseCustomParam};"
+  "let panel = [];\n" + src + "\nreturn {validatePersonalPanel, buildMesFinding, parseCustomParam};"
 )();
 
 const DBKEYS = ["cap", "eff", "hf", "copd"];
